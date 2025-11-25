@@ -11,8 +11,20 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="#FFFFFF">
 
+        <!-- ✅ 티맵이 들어갈 자리 (전체 화면) -->
+        <FrameLayout
+            android:id="@+id/tmap_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- (기존 UI 요소들은 지도 위에 겹쳐서 보이게 됩니다) -->
         <ImageView
             android:id="@+id/btn_home_logo"
             android:layout_width="100dp"
@@ -24,8 +36,7 @@
             app:layout_constraintHorizontal_bias="0.003"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0"
-            app:srcCompat="@drawable/logo" />
+            app:layout_constraintVertical_bias="0.0" />
 
         <ImageView
             android:id="@+id/btn_notification"
@@ -38,8 +49,7 @@
             app:layout_constraintHorizontal_bias="0.742"
             app:layout_constraintStart_toEndOf="@+id/btn_home_logo"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.047"
-            app:srcCompat="@drawable/bell" />
+            app:layout_constraintVertical_bias="0.047" />
 
         <ImageView
             android:id="@+id/btn_menu"
@@ -52,23 +62,9 @@
             app:layout_constraintHorizontal_bias="0.214"
             app:layout_constraintStart_toEndOf="@+id/btn_notification"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.047"
-            app:srcCompat="@drawable/menu" />
+            app:layout_constraintVertical_bias="0.047" />
 
-        <ImageView
-            android:id="@+id/map"
-            android:layout_width="300dp"
-            android:layout_height="330dp"
-            android:layout_margin="32dp"
-            android:src="@drawable/map"
-            android:transitionName="map_transition"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.495"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.291"
-            app:srcCompat="@drawable/map" />
+        <!-- 기존의 '가짜 지도 이미지'는 삭제하거나 숨김 처리했습니다 -->
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -20,7 +20,7 @@ class SignUpActivity : AppCompatActivity() {
         val etName = findViewById<EditText>(R.id.etName) // 이름 입력창 ID
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
-        val btnSignUp = findViewById<Button>(R.id.btnSignUp) // 회원가입 버튼 ID
+        val btnSignUp = findViewById<Button>(R.id.btnSignup) // 회원가입 버튼 ID
 
         btnSignUp.setOnClickListener {
             val name = etName.text.toString()
