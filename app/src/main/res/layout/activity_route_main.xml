@@ -50,11 +50,11 @@
             </LinearLayout>
         </androidx.appcompat.widget.Toolbar>
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/map_fragment_main"
-            android:name="com.naver.maps.map.MapFragment"
+        <LinearLayout
+            android:id="@+id/map_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:orientation="vertical"
             app:layout_constraintTop_toBottomOf="@id/toolbar_route_main"
             app:layout_constraintBottom_toTopOf="@id/card_route_info" />
 
