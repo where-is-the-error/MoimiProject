@@ -3,8 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/drawer_layout_detail"
-    android:layout_width="match_parent"
+    android:id="@+id/drawer_layout"  android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -98,13 +97,13 @@
                 android:textColor="#000000"/>
         </LinearLayout>
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/map_fragment_detail"
-            android:name="com.naver.maps.map.MapFragment"
+        <LinearLayout
+            android:id="@+id/map_container_detail"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginVertical="24dp"
             android:layout_marginHorizontal="16dp"
+            android:orientation="vertical"
             app:layout_constraintTop_toBottomOf="@id/layout_taxi_summary"
             app:layout_constraintBottom_toTopOf="@id/tv_detail_distance" />
 
@@ -135,7 +134,7 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navigation_view_detail"
+        android:id="@+id/navigation_view"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="end"

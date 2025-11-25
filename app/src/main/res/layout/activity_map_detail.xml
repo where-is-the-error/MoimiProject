@@ -55,20 +55,19 @@
             app:layout_constraintVertical_bias="0.047"
             app:srcCompat="@drawable/menu" />
 
-        <ImageView
-            android:id="@+id/map"
+        <LinearLayout
+            android:id="@+id/map_container_detail"
             android:layout_width="300dp"
             android:layout_height="330dp"
             android:layout_margin="32dp"
-            android:src="@drawable/map"
+            android:orientation="vertical"
             android:transitionName="map_transition"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.495"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.291"
-            app:srcCompat="@drawable/map" />
+            app:layout_constraintVertical_bias="0.291" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

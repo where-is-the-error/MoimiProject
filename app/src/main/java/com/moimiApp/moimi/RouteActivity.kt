@@ -1,16 +1,16 @@
 package com.moimiApp.moimi
 
 import android.os.Bundle
+import android.widget.LinearLayout
 import android.widget.Toast
-import com.naver.maps.geometry.LatLng
-import com.naver.maps.map.CameraUpdate
-import com.naver.maps.map.MapFragment
-import com.naver.maps.map.NaverMap
-import com.naver.maps.map.OnMapReadyCallback
-import com.naver.maps.map.overlay.Marker
+import com.skt.Tmap.TMapMarkerItem
+import com.skt.Tmap.TMapPoint
+import com.skt.Tmap.TMapView
 
-// 1. OnMapReadyCallback을 추가해서 지도를 쓸 준비를 합니다.
-class RouteActivity : BaseActivity(), OnMapReadyCallback {
+class RouteActivity : BaseActivity() { // OnMapReadyCallback 제거됨
+
+    private lateinit var tMapView: TMapView
+    private val tMapKey = "여기에_발급받은_TMap_AppKey_입력" // ⚠️ T Map Key 설정
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,32 +19,38 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         // [BaseActivity 기능] 상단바, 햄버거 메뉴 연결
         setupDrawer()
 
-        // [지도 연결] XML에 있는 map_fragment_main을 가져옵니다.
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.map_fragment_main) as MapFragment?
-            ?: MapFragment.newInstance().also {
-                supportFragmentManager.beginTransaction().add(R.id.map_fragment_main, it).commit()
-            }
+        // ----------------------------------------------------
+        // [T Map 지도 초기화]
+        // ----------------------------------------------------
 
-        // 지도가 준비되면 onMapReady 함수를 호출해달라고 요청합니다.
-        mapFragment.getMapAsync(this)
+        // 1. TMapView 객체 생성 및 설정
+        tMapView = TMapView(this)
+        tMapView.setSKTMapApiKey(tMapKey)
+
+        // 2. XML 컨테이너에 TMapView 추가
+        // map_container ID를 가진 LinearLayout에 지도를 삽입합니다.
+        val mapContainer = findViewById<LinearLayout>(R.id.map_container)
+        mapContainer.addView(tMapView)
+
+        // 3. 지도 기능 설정
+        setupTMap()
     }
 
-    // [지도 준비 완료] 지도가 화면에 뜨면 이 함수가 실행됩니다.
-    override fun onMapReady(naverMap: NaverMap) {
+    private fun setupTMap() {
         // 예시 좌표: 고척스카이돔 (37.498, 126.867)
-        val coord = LatLng(37.4982, 126.8671)
+        val tMapPoint = TMapPoint(37.4982, 126.8671)
 
-        // 1. 카메라 이동 (해당 좌표로 줌인)
-        val cameraUpdate = CameraUpdate.scrollTo(coord)
-        naverMap.moveCamera(cameraUpdate)
+        // 카메라 이동 및 줌 레벨 설정
+        tMapView.setCenterPoint(tMapPoint.longitude, tMapPoint.latitude)
+        tMapView.zoomLevel = 15
 
-        // 2. 마커 찍기 (출발지 표시)
-        val marker = Marker()
-        marker.position = coord
-        marker.captionText = "출발: 고척스카이돔"
-        marker.map = naverMap
+        // 마커 찍기 (출발지 표시)
+        val marker = TMapMarkerItem()
+        marker.tMapPoint = tMapPoint
+        marker.name = "출발: 고척스카이돔"
+        tMapView.addMarkerItem("start_marker", marker)
 
-        Toast.makeText(this, "경로 요약 지도가 로드되었습니다.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "경로 요약 지도가 로드되었습니다. (T Map)", Toast.LENGTH_SHORT).show()
     }
-}
 
+}
