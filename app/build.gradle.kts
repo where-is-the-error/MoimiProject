@@ -36,6 +36,8 @@ android {
 }
 
 dependencies {
+    implementation("com.naver.maps:map-sdk:3.17.0") // 👈 이거 필수!
+    implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation(libs.androidx.core.ktx)

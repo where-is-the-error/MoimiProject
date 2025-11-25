@@ -16,6 +16,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://naver.jfrog.io/artifactory/maven/") } // 👈 이거 필수!
     }
 }
 
