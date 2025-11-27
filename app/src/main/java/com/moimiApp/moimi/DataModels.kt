@@ -56,3 +56,11 @@ data class Weather(
     val description: String, // 상세 날씨 설명
     val icon: String // 날씨 아이콘 코드
 )
+
+data class ChatMessage(
+    val meetingId: String,
+    val senderId: String,
+    val senderName: String,
+    val content: String,
+    val timestamp: String? = null // 보낼 땐 null, 받을 땐 서버가 준 시간
+)
