@@ -1,37 +1,67 @@
-package com.moimiApp.moimi // ⚠️ 사용자 패키지명 (꼭 확인!)
+package com.moimiApp.moimi
 
-import android.app.ActivityOptions
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Pair // Pair 사용을 위해 import
-import android.view.View
-import android.widget.ImageView
+import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.skt.tmap.TMapView
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // ⚠️ 아래 ID들(R.id.map, R.id.imageView 등)이 실제 XML에 있는지 꼭 확인하세요!
-        // 만약 XML에 없으면 빨간 줄이 뜰 수 있으니, 없는 건 지우거나 주석 처리하세요.
-        val mapImage = findViewById<ImageView>(R.id.map)
-        val imageView = findViewById<ImageView>(R.id.imageView)
-        val imageView4 = findViewById<ImageView>(R.id.imageView4)
-        val imageView5 = findViewById<ImageView>(R.id.imageView5)
+        // 1. 위치 서비스 권한 체크 및 시작 (기존 코드 유지)
+        checkPermissionAndStartService()
 
-        mapImage.setOnClickListener {
-            val intent = Intent(this, MapDetailActivity::class.java)
+        // 2. 지도 컨테이너 연결 (XML에서 ImageView 'map' 대신 FrameLayout 'map_container'로 변경했어야 함)
+        // 만약 XML ID가 아직 'map'이면 R.id.map_container 부분을 R.id.map으로, 타입은 ViewGroup으로 맞춰야 합니다.
+        val mapContainer = findViewById<ViewGroup>(R.id.map_container)
 
-            // 전환 애니메이션 설정 (공유 요소)
-            val p1 = Pair.create<View, String>(mapImage, "map_transition")
-            val p2 = Pair.create<View, String>(imageView, "image1_transition")
-            val p3 = Pair.create<View, String>(imageView4, "image4_transition")
-            val p4 = Pair.create<View, String>(imageView5, "image5_transition")
+        // 3. TMap 생성
+        val tMapView = TMapView(this)
+        tMapView.setSKTMapApiKey("여기에_발급받은_TMAP_API_KEY를_넣으세요") // 👈 실제 키 입력 필수!
 
-            val options = ActivityOptions.makeSceneTransitionAnimation(this, p1, p2, p3, p4)
+        // 4. 지도 설정 (준비되면 서울 시청 중심으로 이동)
+        tMapView.setOnMapReadyListener {
+            tMapView.zoomLevel = 13
+            tMapView.setCenterPoint(126.9780, 37.5665) // 기본 위치: 서울 시청
+        }
 
-            startActivity(intent, options.toBundle())
+        // 5. 화면에 지도 추가
+        mapContainer.addView(tMapView)
+
+        // ⚠️ [주의] 지도가 터치를 소비하기 때문에, 기존처럼 단순 setOnClickListener는 작동하지 않을 수 있습니다.
+        // 지도를 "클릭"해서 RouteActivity로 넘어가고 싶다면 아래처럼 터치 리스너를 쓰거나,
+        // 지도 위에 투명 버튼을 겹쳐야 합니다.
+        // (일단 지도를 자유롭게 움직여야 하므로, 클릭 이동 기능은 주석 처리해 둡니다.)
+
+        /*
+        tMapView.setOnClickListener {
+            val intent = Intent(this, RouteActivity::class.java)
+            startActivity(intent)
+        }
+        */
+    }
+
+    private fun checkPermissionAndStartService() {
+        val permission = android.Manifest.permission.ACCESS_FINE_LOCATION
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            val intent = Intent(this, LocationService::class.java)
+            startForegroundService(intent)
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(permission), 1001)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            val intent = Intent(this, LocationService::class.java)
+            startForegroundService(intent)
         }
     }
 }

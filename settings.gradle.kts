@@ -1,12 +1,6 @@
 pluginManagement {
     repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
@@ -16,10 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://naver.jfrog.io/artifactory/maven/") } // 👈 이거 필수!
+        // ❌ 지저분한 주소들 전부 삭제함.
     }
 }
-
-rootProject.name = "Moimi"
+rootProject.name = "MoimiProject"
 include(":app")
- 
