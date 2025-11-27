@@ -14,11 +14,6 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        ndk {
-            abiFilters.add("armeabi-v7a")
-            abiFilters.add("arm64-v8a")
-        }
     }
 
 
@@ -44,7 +39,7 @@ android {
 }
 
 dependencies {
-
+    implementation(files("libs/vsm-tmap-sdk-v2-android-1.7.45.aar"))
     implementation(files("libs/tmap-sdk-3.0.aar"))
     //implementation("com.google.android.gms:play-services-maps:18.2.0")
     // 위치 및 통신 라이브러리
