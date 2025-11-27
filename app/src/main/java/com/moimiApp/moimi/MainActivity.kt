@@ -8,8 +8,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.skt.tmap.TMapView
+import android.widget.FrameLayout
+import android.widget.TextView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.skt.tmap.TMapView
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
+
+    private lateinit var tMapView: TMapView
+    private val tMapKey = "QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -47,21 +56,40 @@ class MainActivity : AppCompatActivity() {
         */
     }
 
+    private fun updateDummyUI() {
+        val tvWeather = findViewById<TextView>(R.id.tv_weather_info)
+        tvWeather.text = "24°C 맑음"
+
+        val tvTransport = findViewById<TextView>(R.id.tv_transport_info)
+        tvTransport.text = "강남역까지 택시"
+
+        // 혹시 XML에 tv_transport_time ID가 있다면 주석 해제
+        // val tvTime = findViewById<TextView>(R.id.tv_transport_time)
+        // tvTime.text = "약 25분 소요"
+    }
+
     private fun checkPermissionAndStartService() {
         val permission = android.Manifest.permission.ACCESS_FINE_LOCATION
         if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
-            val intent = Intent(this, LocationService::class.java)
-            startForegroundService(intent)
+            startLocationService()
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(permission), 1001)
+        }
+    }
+
+    private fun startLocationService() {
+        val intent = Intent(this, LocationService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
         }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1001 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            val intent = Intent(this, LocationService::class.java)
-            startForegroundService(intent)
+            startLocationService()
         }
     }
 }
