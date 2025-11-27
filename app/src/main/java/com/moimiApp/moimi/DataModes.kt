@@ -1,23 +1,28 @@
 package com.moimiApp.moimi
 
-// 모든 데이터 클래스를 여기 하나에 모았습니다.
+// ... (기존 LoginRequest, LoginResponse 등은 그대로 유지) ...
 
-data class LoginRequest(val email: String, val password: String)
-
-data class LoginResponse(
-    val success: Boolean, val message: String, val token: String?, val userId: String?, val username: String?
+// --- 5. TMAP 경로 탐색 DTO (자동차 경로) ---
+data class TmapRouteResponse(
+    val features: List<Feature>
 )
 
-data class RegisterRequest(val name: String, val email: String, val password: String)
+data class Feature(
+    val type: String,
+    val geometry: Geometry,
+    val properties: Properties
+)
 
-data class RegisterResponse(val success: Boolean, val message: String, val userId: String?)
+data class Geometry(
+    val type: String,
+    val coordinates: Any // Point: [lon, lat], LineString: [[lon, lat], ...] (복잡해서 Any로 받고 처리하거나 List<Any>로 받음)
+)
 
-data class LocationRequest(val latitude: Double, val longitude: Double)
-
-data class LocationResponse(val success: Boolean)
-
-data class SearchResponse(val total: Int, val start: Int, val display: Int, val items: List<RestaurantItem>)
-
-data class RestaurantItem(
-    val title: String, val link: String, val category: String, val roadAddress: String, val mapx: String, val mapy: String
+data class Properties(
+    val totalDistance: Int? = null, // 총 거리 (m)
+    val totalTime: Int? = null,     // 총 소요시간 (초)
+    val taxiFare: Int? = null,      // 택시 요금
+    val pointType: String? = null,  // 지점 타입 (S: 시작, E: 도착, P: 경유)
+    val name: String? = null,       // 지점 명칭
+    val description: String? = null // 상세 설명
 )
