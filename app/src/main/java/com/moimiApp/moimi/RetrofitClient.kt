@@ -20,6 +20,23 @@ interface ApiService {
     ): Call<LocationResponse>
 }
 
+// 2. [채팅] 채팅 API 인터페이스 (추가됨 ✅)
+interface ChatApiService {
+    // 채팅 내역 가져오기
+    @GET("api/chats/{roomId}")
+    fun getChatHistory(
+        @Header("Authorization") token: String,
+        @Path("roomId") roomId: String
+    ): Call<ChatHistoryResponse>
+
+    // 메시지 보내기
+    @POST("api/chats/send")
+    fun sendMessage(
+        @Header("Authorization") token: String,
+        @Body request: SendMessageRequest
+    ): Call<SendMessageResponse>
+}
+
 // 2. [네이버] 지역 검색 API
 interface NaverSearchApi {
     @GET("v1/search/local.json")
@@ -63,6 +80,14 @@ object RetrofitClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
+    }
+    // [추가됨 ✅] 채팅용 통신 기계
+    val chatInstance: ChatApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_SERVER)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ChatApiService::class.java)
     }
 }
 

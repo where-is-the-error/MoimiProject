@@ -43,6 +43,11 @@
 
         <activity android:name=".RestaurantActivity" />
 
+        <activity android:name=".ChatListActivity" />
+        <activity
+            android:name=".ChatRoomActivity"
+            android:windowSoftInputMode="adjustResize" />
+
         <service
             android:name=".LocationService"
             android:foregroundServiceType="location"

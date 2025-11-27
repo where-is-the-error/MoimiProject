@@ -195,3 +195,40 @@ data class UserLocation(
     val longitude: Double,
     val isArrived: Boolean
 )
+
+// ==========================================
+// 7. [채팅 API] 서버 통신용 데이터 모델 (추가됨)
+// ==========================================
+
+// (1) 채팅 메시지 하나 (DB 데이터)
+data class Chat(
+    @SerializedName("_id") val id: String,
+    @SerializedName("sender_id") val sender: UserSimple, // 보낸 사람 정보
+    @SerializedName("message") val message: String,
+    @SerializedName("created_at") val createdAt: String
+)
+
+// (2) 유저 간단 정보 (채팅 보낸 사람)
+data class UserSimple(
+    @SerializedName("_id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("profile_img") val profileImg: String?
+)
+
+// (3) 메시지 전송 요청 (보낼 때)
+data class SendMessageRequest(
+    val roomId: String,
+    val message: String
+)
+
+// (4) 메시지 전송 응답 (성공 시)
+data class SendMessageResponse(
+    val success: Boolean,
+    val chat: Chat
+)
+
+// (5) 채팅 내역 조회 응답 (목록 불러올 때)
+data class ChatHistoryResponse(
+    val success: Boolean,
+    val chats: List<Chat>
+)
