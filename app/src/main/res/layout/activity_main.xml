@@ -181,20 +181,16 @@
             tools:layout_editor_absoluteX="271dp"
             tools:layout_editor_absoluteY="276dp" />
 
-
-        <ImageView
-            android:id="@+id/map"
+        <FrameLayout
+            android:id="@+id/map_container"
             android:layout_width="300dp"
             android:layout_height="330dp"
-            android:src="@drawable/map"
-            android:transitionName="map_transition"
+            android:background="#E0E0E0"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.495"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.935"
-            app:srcCompat="@drawable/map" />
+            app:layout_constraintVertical_bias="0.935" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

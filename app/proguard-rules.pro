@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# TMap SDK 관련 코드는 절대 지우지 말 것
+-keep class com.skt.tmap.** { *; }
+-keep class com.skt.tmap.vsm.** { *; }
+-dontwarn com.skt.tmap.**
