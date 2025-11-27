@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
 
         // 3. TMap 생성
         val tMapView = TMapView(this)
-        tMapView.setSKTMapApiKey("여기에_발급받은_TMAP_API_KEY를_넣으세요") // 👈 실제 키 입력 필수!
+        tMapView.setSKTMapApiKey("QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL") // 👈 실제 키 입력 필수!
 
         // 4. 지도 설정 (준비되면 서울 시청 중심으로 이동)
         tMapView.setOnMapReadyListener {
