@@ -178,6 +178,13 @@ data class ChatMessageResponse(
     val timestamp: String
 )
 
+// 일정 아이템 (ScheduleAdapter용)
+data class ScheduleItem(
+    val time: String,
+    val title: String,
+    val location: String
+)
+
 
 // ==========================================
 // 6. [모임] 친구 위치 & 도착 정보
@@ -231,4 +238,81 @@ data class SendMessageResponse(
 data class ChatHistoryResponse(
     val success: Boolean,
     val chats: List<Chat>
+)
+
+// ==========================================
+// 8. [일정 API] 데이터 모델
+// ==========================================
+
+// 일정 추가 요청 (보낼 때)
+data class AddScheduleRequest(
+    val date: String,    // "2023-09-22"
+    val time: String,    // "17:00"
+    val title: String,
+    val location: String
+)
+
+// 일정 응답 (받을 때) - DB에 저장된 모양
+data class ScheduleResponse(
+    val success: Boolean,
+    val schedules: List<ScheduleData>? = null, // 조회용 리스트
+    val schedule: ScheduleData? = null         // 추가용 단일 객체
+)
+
+data class ScheduleData(
+    @SerializedName("_id") val id: String,
+    val date: String,
+    val time: String,
+    val title: String,
+    val location: String
+)
+
+// ==========================================
+// 9. [알림 API] 데이터 모델 (추가됨 ✅)
+// ==========================================
+
+data class NotificationResponse(
+    val success: Boolean,
+    val notifications: List<NotificationItem>
+)
+
+data class NotificationItem(
+    @SerializedName("_id") val id: String,
+    val message: String,  // "철수님이 약속을 확인했습니다!"
+    val read: Boolean,
+    @SerializedName("created_at") val createdAt: String
+)
+
+// ==========================================
+// 10. [모임] 약속/예약 생성 요청/응답
+// ==========================================
+
+// 1. 서버에 보낼 예약 정보 (Request)
+data class CreateMeetingRequest(
+    val title: String,
+    val location: String,
+    val dateTime: String, // 서버가 인식할 수 있는 포맷 (예: 2025-09-22 17:00:00)
+    val reservationRequired: Boolean
+)
+
+// 2. 예약 성공 시 서버 응답 (Response)
+data class MeetingCreationResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("meetingId") val meetingId: String?
+)
+
+// ==========================================
+// 10. [모임] 약속 목록 조회 API DTO
+// ==========================================
+
+data class MeetingListResponse(
+    val success: Boolean,
+    val meetings: List<MeetingItem> // 서버가 반환하는 모임 리스트
+)
+
+data class MeetingItem(
+    @SerializedName("meeting_id") val id: String,
+    val title: String,
+    val location: String,
+    @SerializedName("date_time") val dateTime: String
 )

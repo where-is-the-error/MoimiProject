@@ -1,6 +1,5 @@
 package com.moimiApp.moimi
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -15,17 +14,28 @@ import retrofit2.Response
 
 class LoginActivity : AppCompatActivity() {
 
+    // [추가] 세션 관리자 객체
+    private lateinit var prefsManager: SharedPreferencesManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        // 1. View 연결 (XML ID 확인 필수)
+        // SharedPreferencesManager 초기화
+        prefsManager = SharedPreferencesManager(this)
+
+        // ⚠️ [필수 추가] 앱 시작 시 이미 토큰이 있다면 바로 메인으로 이동 (자동 로그인)
+        if (prefsManager.getToken() != null) {
+            goToMainActivity()
+            return
+        }
+
+        // 1. View 연결
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
 
         // 회원가입 & 찾기 버튼 연결
-        // (아까 XML에서 회원가입은 textView3, 찾기는 textFind로 설정했습니다)
         val btnSignUp = findViewById<TextView>(R.id.textView3)
         val btnFind = findViewById<TextView>(R.id.textFind)
 
@@ -46,40 +56,36 @@ class LoginActivity : AppCompatActivity() {
             val email = etEmail.text.toString()
             val password = etPassword.text.toString()
 
-            // 입력값 유효성 검사
             if (email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "이메일과 비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // 요청 데이터 객체 생성
             val requestData = LoginRequest(email, password)
-
-            // Retrofit 비동기 요청
             RetrofitClient.instance.login(requestData).enqueue(object : Callback<LoginResponse> {
                 override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
                     val result = response.body()
 
-                    // 로그인 성공 조건 확인 (HTTP 200 OK + success 필드 true)
                     if (response.isSuccessful && result?.success == true) {
-                        // 토큰 저장
-                        saveAuthTokens(result.token, result.userId)
+                        val token = result.token
+                        val userId = result.userId
+                        val userName = result.username
 
-                        Toast.makeText(this@LoginActivity, "${result.username}님 환영합니다!", Toast.LENGTH_SHORT).show()
+                        if (token != null && userId != null && userName != null) {
+                            // ⭐ [수정됨] SharedPreferencesManager를 사용하여 세션 저장 ⭐
+                            prefsManager.saveSession(token, userId, userName)
 
-                        // 메인 화면으로 이동 및 로그인 화면 종료
-                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                        startActivity(intent)
-                        finish()
+                            Toast.makeText(this@LoginActivity, "${userName}님 환영합니다!", Toast.LENGTH_SHORT).show()
 
+                            // 메인 화면으로 이동
+                            goToMainActivity()
+                        }
                     } else {
-                        // 로그인 실패 (비밀번호 틀림 등)
-                        Toast.makeText(this@LoginActivity, "로그인 실패: ${result?.message ?: "오류 발생"}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@LoginActivity, "로그인 실패: 아이디 또는 비밀번호를 확인해주세요.", Toast.LENGTH_SHORT).show()
                     }
                 }
 
                 override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-                    // 서버 통신 오류 (인터넷 끊김, 서버 다운 등)
                     Toast.makeText(this@LoginActivity, "서버 연결 오류: ${t.message}", Toast.LENGTH_LONG).show()
                     Log.e("LOGIN", "에러 발생", t)
                 }
@@ -87,13 +93,14 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    // 토큰 저장 함수 (SharedPreferences)
-    private fun saveAuthTokens(token: String?, userId: String?) {
-        val sharedPref = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-        with(sharedPref.edit()) {
-            putString("jwt_token", token)
-            putString("user_id", userId)
-            apply() // 비동기 저장
-        }
+    // [삭제] 기존의 수동 저장 함수는 삭제해야 합니다.
+    // private fun saveAuthTokens(token: String?, userId: String?) { ... }
+
+    // [추가] 메인 화면 이동 함수
+    private fun goToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        // 로그인 성공 후 뒤로가기로 돌아오지 않도록 스택 정리
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
     }
 }

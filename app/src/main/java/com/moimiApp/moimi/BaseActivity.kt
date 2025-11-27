@@ -1,5 +1,6 @@
 package com.moimiApp.moimi // 패키지명 확인!
 
+import android.content.Context // Context import 추가
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ImageView
@@ -12,6 +13,17 @@ import com.google.android.material.navigation.NavigationView
 
 open class BaseActivity : AppCompatActivity() {
 
+    // [추가 1] SharedPreferencesManager 초기화 (여기에 추가해야 합니다)
+    protected val prefsManager: SharedPreferencesManager by lazy {
+        SharedPreferencesManager(this)
+    }
+
+    // [추가 2] 토큰을 쉽게 가져오는 함수 (여기에 추가해야 합니다)
+    protected fun getAuthToken(): String {
+        val token = prefsManager.getToken() ?: ""
+        // API 호출 헤더에 필요한 "Bearer " 접두사를 붙여서 반환
+        return if (token.isNotEmpty()) "Bearer $token" else ""
+    }
     protected lateinit var drawerLayout: DrawerLayout
 
     protected fun setupDrawer() {
@@ -52,14 +64,16 @@ open class BaseActivity : AppCompatActivity() {
             // 메뉴: 음식점 예약
             val menuRestaurant = headerView.findViewById<TextView>(R.id.menu_restaurant)
             menuRestaurant?.setOnClickListener {
-                Toast.makeText(this, "음식점 예약 준비 중", Toast.LENGTH_SHORT).show()
+                val intent = Intent(this, RestaurantActivity::class.java) // 이동할 곳 연결
+                startActivity(intent)
                 drawerLayout.closeDrawer(GravityCompat.END)
             }
 
             // 메뉴: 일정
             val menuSchedule = headerView.findViewById<TextView>(R.id.menu_schedule)
             menuSchedule?.setOnClickListener {
-                Toast.makeText(this, "일정 화면 준비 중", Toast.LENGTH_SHORT).show()
+                val intent = Intent(this, ScheduleActivity::class.java)
+                startActivity(intent)
                 drawerLayout.closeDrawer(GravityCompat.END)
             }
 
