@@ -38,7 +38,7 @@ class RouteActivity : AppCompatActivity() {
 
         // 3. TMapView 생성 및 API 키 설정 (SDK 3.0 필수)
         tMapView = TMapView(this)
-        tMapView.setSKTMapApiKey("여기에_발급받은_TMAP_API_KEY를_넣으세요") // 👈 본인 키 입력 필수!
+        tMapView.setSKTMapApiKey("QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL") // 👈 본인 키 입력 필수!
 
         // 4. 컨테이너에 지도 뷰 추가
         mapContainer.addView(tMapView)
@@ -73,6 +73,7 @@ class RouteActivity : AppCompatActivity() {
         polyLine.addLinePoint(TMapPoint(37.5384, 127.0025)) // 중간 경유지
         polyLine.addLinePoint(end)
 
+        tMapView.addTMapPolyLine(polyLine)
         // 지도에 선 추가 (식별 ID, 선 객체)
         //tMapView.addTMapPolyLine("route_line_demo", polyLine)
     }

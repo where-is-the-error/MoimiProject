@@ -41,6 +41,17 @@ interface TmapRouteApi {
     ): Call<TmapRouteResponse>
 }
 
+// 4. OpenWeatherMap API 요청 기능 정의 (추가됨)
+interface OpenWeatherMapService {
+    @GET("data/2.5/weather") // OpenWeatherMap 현재 날씨 엔드포인트
+    fun getCurrentWeatherData(
+        // API Docs에 따라 쿼리 파라미터 정의
+        @Query("q") location: String, // 도시 이름 (예: Seoul)
+        @Query("units") units: String = "metric", // 온도 단위 설정 (metric: 섭씨, default: 켈빈)
+        @Query("appid") apiKey: String // 발급받은 API Key
+    ): Call<WeatherData>
+}
+
 // --- 통신 기계 인스턴스 생성 ---
 
 // Node.js 백엔드 서버 통신 기계
@@ -79,5 +90,19 @@ object TmapClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(TmapRouteApi::class.java)
+    }
+} // 👈 TmapClient는 여기서 끝나야 합니다!
+
+// OpenWeatherMap API 통신 기계 (TmapClient 밖으로 꺼냄)
+object WeatherClient {
+    // OpenWeatherMap의 기본 URL
+    private const val BASE_URL_WEATHER = "https://api.openweathermap.org/"
+
+    val instance: OpenWeatherMapService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_WEATHER)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(OpenWeatherMapService::class.java)
     }
 }
