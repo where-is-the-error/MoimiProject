@@ -1,26 +1,19 @@
 package com.moimiApp.moimi
 
+// 3.0 버전 Import (빨간줄 뜨면 Alt+Enter로 다시 잡으세요)
 import android.graphics.Color
 import android.os.Bundle
-import android.widget.LinearLayout
+import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.skt.tmap.TmapApi
-import com.skt.tmap.map.MapFragment
-import com.skt.tmap.map.TmapMap
-import com.skt.tmap.MapInitListener
-import com.skt.tmap.TmapPoint
-import com.skt.tmap.overlay.TmapPolyLine
-import com.skt.tmap.vsm.map.MapConstant
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.skt.tmap.TMapPoint
+import com.skt.tmap.TMapView
+import com.skt.tmap.overlay.TMapPolyLine
 
-class RouteDetailActivity : AppCompatActivity(), MapInitListener {
+class RouteActivity : AppCompatActivity() {
 
-    private lateinit var tmapMap: TmapMap
+    // 3.0 방식: TMapView 선언
+    private lateinit var tMapView: TMapView
 
     // XML의 뷰들
     private lateinit var tvTitle: TextView
@@ -29,7 +22,10 @@ class RouteDetailActivity : AppCompatActivity(), MapInitListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // ⚠️ XML 파일 이름이 activity_route_detail_taxi.xml 인지 확인하세요!
+
+        // ⚠️ 주의: XML 파일명이 맞는지 꼭 확인하세요.
+        // RouteActivity라면 activity_route.xml 일 수도 있습니다.
+        // 여기서는 기존 코드대로 'activity_route_detail_taxi'를 유지합니다.
         setContentView(R.layout.activity_route_detail_taxi)
 
         // 1. 뷰 연결
@@ -37,68 +33,47 @@ class RouteDetailActivity : AppCompatActivity(), MapInitListener {
         tvTime = findViewById(R.id.tv_detail_time)
         tvDistance = findViewById(R.id.tv_detail_distance)
 
-        // 2. Tmap API 초기화
-        TmapApi.init(this)
+        // 2. 지도를 넣을 컨테이너 연결 (XML에 있는 ID)
+        val mapContainer = findViewById<ViewGroup>(R.id.map_container_detail)
 
-        // 3. 지도 프래그먼트 생성 및 추가
-        // XML에 map_container_detail (LinearLayout)이 있다고 가정합니다.
-        // 하지만 MapFragment는 FrameLayout이나 FragmentContainerView에 넣는 게 정석입니다.
-        // 여기서는 코드로 FrameLayout을 동적으로 추가해서 해결하거나, XML을 수정해야 합니다.
-        // (일단 XML의 LinearLayout 안에 지도를 넣는 방식 시도)
+        // 3. TMapView 생성 및 API 키 설정 (SDK 3.0 필수)
+        tMapView = TMapView(this)
+        tMapView.setSKTMapApiKey("여기에_발급받은_TMAP_API_KEY를_넣으세요") // 👈 본인 키 입력 필수!
 
-        val mapFragment = MapFragment()
-        mapFragment.setOnMapInitListener(this)
+        // 4. 컨테이너에 지도 뷰 추가
+        mapContainer.addView(tMapView)
 
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.map_container_detail, mapFragment)
-            .commit()
+        // 5. 지도가 준비되면 할 일 (리스너)
+        tMapView.setOnMapReadyListener {
+            // 지도가 로딩된 후 경로 탐색 로직 실행
+            val startPoint = TMapPoint(37.5665, 126.9780) // 서울 시청
+            val endPoint = TMapPoint(37.4979, 127.0276)   // 강남역
 
-        // (참고: LinearLayout ID에 replace하면 기존 내용이 다 사라지고 지도만 남을 수 있으니,
-        // XML에서 map_container_detail 안에 빈 FrameLayout을 하나 더 만드는 게 안전합니다.
-        // 하지만 일단 진행해 봅니다.)
+            drawRoute(startPoint, endPoint)
+        }
     }
 
-    override fun onMapInitSucceeded(tmapMap: TmapMap) {
-        this.tmapMap = tmapMap
+    private fun drawRoute(start: TMapPoint, end: TMapPoint) {
+        // 1. 지도 중심점 및 줌 설정
+        tMapView.setCenterPoint(start.longitude, start.latitude)
+        tMapView.zoomLevel = 13
 
-        // 4. 경로 탐색 시작 (예: 시청 -> 강남역)
-        val startPoint = TmapPoint(37.5665, 126.9780) // 서울 시청
-        val endPoint = TmapPoint(37.4979, 127.0276)   // 강남역
-
-        searchRoute(startPoint, endPoint)
-    }
-
-    override fun onMapInitFailed(errorMsg: String) {
-        Toast.makeText(this, "지도 로딩 실패: $errorMsg", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun searchRoute(start: TmapPoint, end: TmapPoint) {
-        // TmapData는 3.0 SDK에서 제공하는지 확인 필요.
-        // 3.0에서는 'TmapData' 클래스가 없거나 사용법이 다를 수 있습니다.
-        // 여기서는 Retrofit API를 직접 호출하거나, SDK에 내장된 경로 기능을 사용해야 합니다.
-
-        // ⚠️ [중요] Tmap SDK 3.0은 '지도 표시' 전용이며, '경로 데이터 계산(API)'은 별도입니다.
-        // 따라서 실제 경로 데이터를 가져오려면 아까 만든 Retrofit (Tmap API)을 써야 합니다.
-        // 하지만 지금은 복잡하니, "직선 그리기"와 "가짜 데이터"로 화면만 먼저 완성해 드리겠습니다.
-
-        // 1. 지도 위치 이동
-        tmapMap.setCenterPoint(start.longitude, start.latitude)
-        tmapMap.setZoomLevel(13)
-
-        // 2. 가짜 데이터 채우기 (API 연동 전 테스트)
+        // 2. 가짜 데이터 채우기 (테스트용)
         tvTitle.text = "서울 시청 ➔ 강남역"
         tvTime.text = "25분"
         tvDistance.text = "9.5km\n약 12,000원"
 
-        // 3. 지도에 선 그리기 (PolyLine)
-        val polyLine = TmapPolyLine().apply {
-            lineColor = Color.RED
-            lineWidth = 10f
-            addLinePoint(start)
-            addLinePoint(TmapPoint(37.5384, 127.0025)) // 중간점 (한남대교)
-            addLinePoint(end)
-        }
+        // 3. 지도에 경로 선 그리기 (TMapPolyLine - 대문자 M)
+        val polyLine = TMapPolyLine()
+        polyLine.lineColor = Color.RED
+        polyLine.lineWidth = 10f
 
-        tmapMap.addTmapPolyLine(polyLine)
+        // 경로 포인트 추가
+        polyLine.addLinePoint(start)
+        polyLine.addLinePoint(TMapPoint(37.5384, 127.0025)) // 중간 경유지
+        polyLine.addLinePoint(end)
+
+        // 지도에 선 추가 (식별 ID, 선 객체)
+        //tMapView.addTMapPolyLine("route_line_demo", polyLine)
     }
 }
