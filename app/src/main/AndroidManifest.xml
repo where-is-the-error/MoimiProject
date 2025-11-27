@@ -20,7 +20,6 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
-        <!-- 티맵 API 키 -->
         <meta-data
             android:name="com.skt.tmap.sdk.API_KEY"
             android:value="QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL" />
@@ -36,10 +35,13 @@
 
         <activity android:name=".LoginActivity" />
         <activity android:name=".SignUpActivity" />
-        <activity android:name=".RouteActivity" /> <!-- 지도 화면 -->
+        <activity android:name=".FindAccountActivity" />
 
-        <!-- DetailActivity는 아직 안 만들었거나 필요 없으면 삭제 -->
-        <!-- <activity android:name=".RouteDetailActivity" /> -->
+        <activity android:name=".LocationShareActivity" />
+        <activity android:name=".RouteActivity" />
+        <activity android:name=".RouteDetailActivity" />
+
+        <activity android:name=".RestaurantActivity" />
 
         <service
             android:name=".LocationService"
