@@ -16,139 +16,200 @@
 
         <ImageView
             android:id="@+id/btn_home_logo"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
             android:src="@drawable/logo"
-            android:transitionName="moimi_logo_transition"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.003"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0"
-            app:srcCompat="@drawable/logo" />
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/btn_notification"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/bell"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:layout_marginEnd="16dp"/>
+
+            <ImageView
+                android:id="@+id/btn_menu"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/menu"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"/>
+        </LinearLayout>
 
         <ImageView
-            android:id="@+id/btn_notification"
+            android:id="@+id/img_profile_1"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:src="@drawable/bell"
-            android:transitionName="Bell_transition"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.742"
-            app:layout_constraintStart_toEndOf="@+id/btn_home_logo"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.047"
-            app:srcCompat="@drawable/bell" />
-
-        <ImageView
-            android:id="@+id/btn_menu"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:src="@drawable/menu"
-            android:transitionName="menu_transition"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.214"
-            app:layout_constraintStart_toEndOf="@+id/btn_notification"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.047"
-            app:srcCompat="@drawable/menu" />
-
-
-        <ImageView
-            android:id="@+id/imageView6"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.123"
+            android:layout_marginTop="32dp"
+            android:layout_marginStart="24dp"
+            app:srcCompat="@drawable/profile"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.142"
-            app:srcCompat="@drawable/profile" />
+            app:layout_constraintTop_toBottomOf="@+id/btn_home_logo"/>
 
         <TextView
-            android:id="@+id/textView2"
+            android:id="@+id/tv_noti_1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="철수님이 약속을 확인했습니다!"
             android:textColor="@color/black"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.09"
-            app:layout_constraintStart_toEndOf="@+id/imageView6"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.14" />
-
+            android:layout_marginStart="12dp"
+            app:layout_constraintStart_toEndOf="@+id/img_profile_1"
+            app:layout_constraintTop_toTopOf="@+id/img_profile_1"
+            app:layout_constraintBottom_toBottomOf="@+id/img_profile_1"/>
 
         <ImageView
-            android:id="@+id/imageView7"
+            android:id="@+id/img_check_1"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.123"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/imageView6"
-            app:layout_constraintVertical_bias="0.012"
-            app:srcCompat="@drawable/uncheckbox" />
+            android:layout_marginTop="16dp"
+            app:srcCompat="@drawable/uncheckbox"
+            app:layout_constraintStart_toStartOf="@+id/img_profile_1"
+            app:layout_constraintTop_toBottomOf="@+id/img_profile_1"/>
 
         <TextView
-            android:id="@+id/textView3"
+            android:id="@+id/tv_noti_2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="유리님과의 약속이 다가오고 있습니다!"
             android:textColor="@color/black"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.125"
-            app:layout_constraintStart_toEndOf="@+id/imageView7"
-            app:layout_constraintTop_toBottomOf="@+id/textView2"
-            app:layout_constraintVertical_bias="0.027" />
-
+            android:layout_marginStart="12dp"
+            app:layout_constraintStart_toEndOf="@+id/img_check_1"
+            app:layout_constraintTop_toTopOf="@+id/img_check_1"
+            app:layout_constraintBottom_toBottomOf="@+id/img_check_1"/>
 
         <ImageView
-            android:id="@+id/imageView8"
+            android:id="@+id/img_check_2"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.123"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/imageView7"
-            app:layout_constraintVertical_bias="0.027"
-            app:srcCompat="@drawable/checkbox1" />
+            android:layout_marginTop="16dp"
+            app:srcCompat="@drawable/checkbox1"
+            app:layout_constraintStart_toStartOf="@+id/img_check_1"
+            app:layout_constraintTop_toBottomOf="@+id/img_check_1"/>
 
         <TextView
-            android:id="@+id/textView4"
+            android:id="@+id/tv_noti_3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="9/22 17:00 동양식당 예약"
             android:textColor="@color/black"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.077"
-            app:layout_constraintStart_toEndOf="@+id/imageView8"
-            app:layout_constraintTop_toBottomOf="@+id/textView3"
-            app:layout_constraintVertical_bias="0.04" />
+            android:layout_marginStart="12dp"
+            app:layout_constraintStart_toEndOf="@+id/img_check_2"
+            app:layout_constraintTop_toTopOf="@+id/img_check_2"
+            app:layout_constraintBottom_toBottomOf="@+id/img_check_2"/>
 
 
-        <ImageView
-            android:id="@+id/widget1"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/layout_widgets"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="30dp"
+            app:layout_constraintTop_toBottomOf="@+id/img_check_2">
+
+            <FrameLayout
+                android:id="@+id/frame_weather"
+                android:layout_width="160dp"
+                android:layout_height="100dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/widget1">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <ImageView
+                        android:id="@+id/iv_weather_icon"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/widget1"
+                        android:layout_marginBottom="4dp"/>
+
+                    <TextView
+                        android:id="@+id/tv_weather_info"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="24°C 맑음"
+                        android:textStyle="bold"
+                        android:textColor="#000000"/>
+                </LinearLayout>
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/frame_transport"
+                android:layout_width="160dp"
+                android:layout_height="100dp"
+                android:background="@drawable/widget1">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <ImageView
+                        android:id="@+id/iv_transport_icon"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/widget1"
+                        android:layout_marginBottom="4dp"/>
+
+                    <TextView
+                        android:id="@+id/tv_transport_info"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="약속 장소까지"
+                        android:textSize="12sp"
+                        android:textColor="#555555"/>
+                    <TextView
+                        android:id="@+id/tv_transport_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="35분 소요"
+                        android:textStyle="bold"
+                        android:textColor="#000000"/>
+                </LinearLayout>
+            </FrameLayout>
+        </LinearLayout>
+
+
+        <FrameLayout
+            android:id="@+id/map_container_main"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_margin="24dp"
+            android:background="@drawable/bg_input_rounded"
+            app:layout_constraintTop_toBottomOf="@+id/layout_widgets"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.068"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.374"
-            app:srcCompat="@drawable/widget1" />
+            app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
             android:id="@+id/widget2"
@@ -191,6 +252,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintVertical_bias="0.935" />
+        </FrameLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

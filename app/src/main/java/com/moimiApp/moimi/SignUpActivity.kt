@@ -1,4 +1,4 @@
-package com.moimiApp.moimi // ⚠️ 패키지명 확인
+package com.moimiApp.moimi
 
 import android.os.Bundle
 import android.util.Log
@@ -10,30 +10,33 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-// ⚠️ XML 파일 이름이 activity_sign_up.xml 이라고 가정합니다.
 class SignUpActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_up)
 
-        // 1. 필요한 View ID들을 연결 (XML ID에 맞춰 수정하세요!)
-        val etName = findViewById<EditText>(R.id.etName) // 이름 입력창 ID
+        // 1. View ID 연결 (XML에 etPhone이 있어야 합니다!)
+        val etName = findViewById<EditText>(R.id.etName)
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
-        val btnSignUp = findViewById<Button>(R.id.btnSignup) // 회원가입 버튼 ID
+        val etNum = findViewById<EditText>(R.id.etNum) // ✅ 추가됨
+        val btnSignUp = findViewById<Button>(R.id.btnSignup)
 
         btnSignUp.setOnClickListener {
             val name = etName.text.toString()
             val email = etEmail.text.toString()
             val password = etPassword.text.toString()
+            val phone = etNum.text.toString() // ✅ 추가됨
 
-            if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            // 빈칸 체크
+            if (name.isEmpty() || email.isEmpty() || password.isEmpty() || phone.isEmpty()) {
                 Toast.makeText(this, "모든 정보를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             // 2. 서버로 보낼 데이터 준비
-            val requestData = RegisterRequest(name, email, password)
+            // 순서 주의: (이메일, 비번, 이름, 폰번호) -> DataModes.kt 순서와 같아야 함
+            val requestData = RegisterRequest(email, password, name, phone)
 
             // 3. Retrofit 호출
             RetrofitClient.instance.register(requestData).enqueue(object : Callback<RegisterResponse> {
@@ -42,10 +45,9 @@ class SignUpActivity : AppCompatActivity() {
 
                     if (response.isSuccessful && result?.success == true) {
                         Toast.makeText(this@SignUpActivity, "회원가입 성공!", Toast.LENGTH_LONG).show()
-                        finish() // 회원가입 성공 후 이전 화면(로그인)으로 돌아가기
+                        finish() // 성공 시 창 닫고 로그인 화면으로 복귀
                     } else {
-                        // 서버 오류 (409 중복 등)
-                        Toast.makeText(this@SignUpActivity, "회원가입 실패: ${result?.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@SignUpActivity, "실패: ${result?.message}", Toast.LENGTH_LONG).show()
                         Log.e("SIGNUP", "실패 응답: ${response.errorBody()?.string()}")
                     }
                 }
