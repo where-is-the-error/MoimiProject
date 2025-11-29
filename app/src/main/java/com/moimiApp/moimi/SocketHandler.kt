@@ -10,9 +10,8 @@ object SocketHandler {
     @Synchronized
     fun setSocket() {
         try {
-            // [중요] 에뮬레이터에서 로컬 서버 접속 시: "http://10.0.2.2:3000"
-            // 실기기 테스트 시: "http://(내_PC_IP주소):3000"
-            mSocket = IO.socket("http://10.0.2.2:3000")
+            // 🟢 [수정] 전역 상수 파일에서 가져오기
+            mSocket = IO.socket(Constants.SOCKET_URL)
         } catch (e: URISyntaxException) {
             e.printStackTrace()
         }

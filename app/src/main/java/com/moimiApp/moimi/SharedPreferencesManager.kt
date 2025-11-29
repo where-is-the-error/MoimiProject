@@ -5,11 +5,11 @@ import android.content.SharedPreferences
 
 class SharedPreferencesManager(context: Context) {
 
-    // SharedPreferences 파일 이름 정의
-    private val PREFS_NAME = "moimi_app_prefs"
-    private val TOKEN_KEY = "auth_token"
-    private val USER_ID_KEY = "user_id"
-    private val USER_NAME_KEY = "user_name" // 사용자 이름 저장
+    // 🟢 [수정] 상수로 변경
+    private val PREFS_NAME = Constants.PREFS_NAME
+    private val TOKEN_KEY = Constants.KEY_AUTH_TOKEN
+    private val USER_ID_KEY = Constants.KEY_USER_ID
+    private val USER_NAME_KEY = Constants.KEY_USER_NAME
 
     // MODE_PRIVATE: 이 앱에서만 파일 접근 가능
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -29,12 +29,12 @@ class SharedPreferencesManager(context: Context) {
         return prefs.getString(TOKEN_KEY, null)
     }
 
-
     // --- 세션 삭제 (로그아웃 시 사용) ---
     fun clearSession() {
         prefs.edit().clear().apply()
     }
-    // SharedPreferencesManager.kt 안에 추가
+
+    // 사용자 정보 가져오기
     fun getUserId(): String? = prefs.getString(USER_ID_KEY, null)
     fun getUserName(): String? = prefs.getString(USER_NAME_KEY, null)
 }

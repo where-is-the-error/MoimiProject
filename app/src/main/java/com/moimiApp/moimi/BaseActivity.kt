@@ -19,42 +19,44 @@ import com.skt.tmap.TMapView
 
 open class BaseActivity : AppCompatActivity() {
 
-    protected val tMapApiKey = "QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL"
+    // 🟢 [수정] 상수로 교체
+    protected val tMapApiKey = Constants.TMAP_API_KEY
 
+    // SharedPreferencesManager (세션 관리)
     protected val prefsManager: SharedPreferencesManager by lazy {
         SharedPreferencesManager(this)
     }
 
+    // 토큰 가져오기 헬퍼 함수
     protected fun getAuthToken(): String {
         val token = prefsManager.getToken() ?: ""
         return if (token.isNotEmpty()) "Bearer $token" else ""
     }
 
-    // 메뉴 및 로고 설정 함수
+    // 메뉴 및 로고 설정 함수 (하나로 통합됨)
     protected fun setupDrawer() {
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout) ?: return
 
-        // 🟢 [추가됨] 로그인한 사용자 정보로 프로필 텍스트 변경
+        // 로그인한 사용자 정보로 프로필 텍스트 변경
         val savedName = prefsManager.getUserName() ?: "게스트"
         val savedId = prefsManager.getUserId() ?: "로그인 해주세요"
 
         findViewById<TextView>(R.id.tv_user_name)?.text = savedName
         findViewById<TextView>(R.id.tv_user_id)?.text = savedId
-        // ----------------------------------------------------
 
-        // 1. 로고(m) 클릭 시 메인 화면으로 이동
+        // 1. [로고 클릭] 메인 화면으로 이동
         findViewById<ImageView>(R.id.btn_home_logo)?.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
         }
 
-        // 2. 메뉴 열기 버튼
+        // 2. [메뉴 버튼] 열기
         findViewById<ImageView>(R.id.btn_menu)?.setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.END)
         }
 
-        // 3. 메뉴 닫기 버튼
+        // 3. [닫기 버튼] 닫기
         findViewById<ImageView>(R.id.btn_close_drawer)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.END)
         }
@@ -99,7 +101,7 @@ open class BaseActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // 와이파이 체크 및 UI 업데이트 (기존 유지)
+    // 와이파이 체크 및 UI 업데이트
     protected fun checkWifiandUpdateUI(mapContainer: ViewGroup, tMapView: TMapView) {
         if (isWifiConnected()) {
             tMapView.visibility = View.VISIBLE

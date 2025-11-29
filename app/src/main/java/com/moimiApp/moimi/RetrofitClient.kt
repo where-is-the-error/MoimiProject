@@ -117,7 +117,8 @@ interface TmapApiService {
 // [Retrofit 객체 모음]
 // ==========================================
 object RetrofitClient {
-    private const val BASE_URL_SERVER = "http://10.0.2.2:3000/" // 에뮬레이터 IP
+    // 🟢 [수정] 전역 상수 파일에서 가져오기
+    private const val BASE_URL_SERVER = Constants.BASE_URL
 
     private val retrofit by lazy {
         Retrofit.Builder()
@@ -158,7 +159,6 @@ object NaverClient {
 object TmapClient {
     private const val BASE_URL_TMAP = "https://apis.openapi.sk.com/"
 
-    // [수정] TmapRouteApi 삭제하고 TmapApiService만 사용
     val instance: TmapApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL_TMAP)
