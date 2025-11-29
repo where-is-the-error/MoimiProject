@@ -70,6 +70,14 @@ open class BaseActivity : AppCompatActivity() {
                 drawerLayout.closeDrawer(GravityCompat.END)
             }
 
+            // ✅ [추가됨] 메뉴: 내 모임 -> MeetingListActivity로 이동
+            val menuMeetingList = headerView.findViewById<TextView>(R.id.menu_meeting_list)
+            menuMeetingList?.setOnClickListener {
+                val intent = Intent(this, MeetingListActivity::class.java)
+                startActivity(intent)
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+
             // [메뉴: 길찾기]
             val menuRoute = headerView.findViewById<TextView>(R.id.menu_route)
             menuRoute?.setOnClickListener {
