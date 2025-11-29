@@ -1,23 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.READ_CALENDAR" />
-    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
     <application
         android:allowBackup="true"
@@ -29,17 +20,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Moimi"
         android:usesCleartextTraffic="true"
-
         tools:targetApi="31">
 
         <meta-data
             android:name="com.skt.tmap.sdk.API_KEY"
             android:value="QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL" />
 
-        <activity android:name=".MainActivity" />
-
         <activity
-            android:name=".LoginActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -47,40 +35,23 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".MainActivity" />
+        <activity android:name=".LoginActivity" />
         <activity android:name=".SignUpActivity" />
         <activity android:name=".FindAccountActivity" />
-
-        <activity android:name=".LocationShareActivity" />
+        <activity android:name=".ChatListActivity" />
+        <activity android:name=".ChatRoomActivity" />
         <activity android:name=".RouteActivity" />
         <activity android:name=".RouteDetailActivity" />
-
         <activity android:name=".RestaurantActivity" />
-
-        <activity android:name=".ChatListActivity" />
-
+        <activity android:name=".LocationShareActivity" />
         <activity android:name=".ScheduleActivity" />
-
         <activity android:name=".AddScheduleActivity" />
-
-        <activity
-            android:name=".ChatRoomActivity"
-            android:windowSoftInputMode="adjustResize" />
 
         <service
             android:name=".LocationService"
-            android:enabled="true"
             android:foregroundServiceType="location"
             android:exported="false" />
 
-        <receiver
-            android:name=".NotificationReceiver"
-            android:enabled="true"
-            android:exported="false" />
-        <service
-        android:name=".LocationService"
-        android:foregroundServiceType="location"
-        android:exported="false" />
-
     </application>
+
 </manifest>

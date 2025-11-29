@@ -5,9 +5,8 @@ import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Looper
+import android.util.Log
 import android.view.ViewGroup
-import android.util.Log // Log import 추가
-import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -16,12 +15,12 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.skt.tmap.TMapView
 import com.skt.tmap.TMapPoint
+import com.skt.tmap.TMapView
 import com.skt.tmap.overlay.TMapMarkerItem
-import retrofit2.Call // Retrofit Import
-import retrofit2.Callback // Retrofit Import
-import retrofit2.Response // Retrofit Import
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class MainActivity : BaseActivity() {
 
@@ -30,23 +29,38 @@ class MainActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ⭐ [추가됨] 로그인 상태 확인 로직
+        // 저장된 토큰이 없으면 로그인 화면으로 이동하고, 메인 화면은 종료(finish)합니다.
+        if (prefsManager.getToken() == null) {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+            finish() // 뒤로가기 눌러도 메인으로 못 오게 종료
+            return
+        }
+
         setContentView(R.layout.activity_main)
         setupDrawer()
         checkPermissionAndStartService()
 
-        // ⭐ [필수 추가] 5. 서버에서 알림 가져오기 (가장 마지막에 실행)
+        // 알림 가져오기
         fetchNotifications()
-    }
 
+        // 지도 초기화
         val mapContainer = findViewById<ViewGroup>(R.id.map_container)
 
-        tMapView = TMapView(this)
-        mapContainer.addView(tMapView) // 뷰 먼저 추가
-        tMapView.setSKTMapApiKey(tMapApiKey)
+        // TMAP 초기화 시 예외 처리 추가 (지도 백지화 방지 안전장치)
+        try {
+            tMapView = TMapView(this)
+            mapContainer.addView(tMapView)
+            tMapView.setSKTMapApiKey(tMapApiKey)
 
-        tMapView.setOnMapReadyListener {
-            tMapView.zoomLevel = 15
-            startTrackingMyLocation()
+            tMapView.setOnMapReadyListener {
+                tMapView.zoomLevel = 15
+                startTrackingMyLocation()
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "TMAP 초기화 오류: ${e.message}")
         }
     }
 
@@ -61,15 +75,18 @@ class MainActivity : BaseActivity() {
             fusedClient.requestLocationUpdates(locationRequest, object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
                     result.lastLocation?.let { location ->
-                        tMapView.setCenterPoint(location.longitude, location.latitude)
+                        // TMAP이 준비된 상태인지 확인 후 사용
+                        if (::tMapView.isInitialized) {
+                            tMapView.setCenterPoint(location.longitude, location.latitude)
 
-                        myLocationMarker.id = "my_location"
-                        myLocationMarker.setTMapPoint(TMapPoint(location.latitude, location.longitude))
-                        val bitmap = BitmapFactory.decodeResource(resources, R.drawable.profile) // 프로필 이미지 마커
-                        myLocationMarker.icon = bitmap
-                        myLocationMarker.setPosition(0.5f, 0.5f)
+                            myLocationMarker.id = "my_location"
+                            myLocationMarker.setTMapPoint(TMapPoint(location.latitude, location.longitude))
+                            val bitmap = BitmapFactory.decodeResource(resources, R.drawable.profile) // 프로필 이미지 사용
+                            myLocationMarker.icon = bitmap
+                            myLocationMarker.setPosition(0.5f, 0.5f)
 
-                        tMapView.addTMapMarkerItem(myLocationMarker)
+                            tMapView.addTMapMarkerItem(myLocationMarker)
+                        }
                     }
                 }
             }, Looper.getMainLooper())
@@ -109,43 +126,27 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    // ----------------------------------------------------------------
-    // [추가된 기능] 서버에서 알림 목록을 가져와서 화면에 표시하는 함수
-    // ----------------------------------------------------------------
     private fun fetchNotifications() {
-        // XML에 있는 알림 텍스트뷰 ID를 찾아 연결
         val tvNoti1 = findViewById<TextView>(R.id.tv_noti_1)
         val tvNoti2 = findViewById<TextView>(R.id.tv_noti_2)
-
-        // BaseActivity의 getAuthToken() 함수를 사용하여 토큰을 가져옵니다.
-        val token = getAuthToken()
+        val token = getAuthToken() // BaseActivity의 함수 사용
 
         RetrofitClient.notificationInstance.getNotifications(token)
             .enqueue(object : Callback<NotificationResponse> {
                 override fun onResponse(call: Call<NotificationResponse>, response: Response<NotificationResponse>) {
                     if (response.isSuccessful && response.body()?.success == true) {
                         val notiList = response.body()!!.notifications
+                        if (notiList.isNotEmpty()) tvNoti1.text = notiList[0].message
+                        else tvNoti1.text = "새로운 알림이 없습니다."
 
-                        // 첫 번째 알림 설정
-                        if (notiList.isNotEmpty()) {
-                            tvNoti1.text = notiList[0].message
-                        } else {
-                            tvNoti1.text = "새로운 알림이 없습니다."
-                        }
-
-                        // 두 번째 알림 설정
-                        if (notiList.size >= 2) {
-                            tvNoti2.text = notiList[1].message
-                        } else {
-                            tvNoti2.text = "" // 두 번째 알림 없으면 비움
-                        }
+                        if (notiList.size >= 2) tvNoti2.text = notiList[1].message
+                        else tvNoti2.text = ""
                     } else {
-                        tvNoti1.text = "알림 로드 실패 (인증 오류)"
+                        tvNoti1.text = "알림 로드 실패"
                     }
                 }
-
                 override fun onFailure(call: Call<NotificationResponse>, t: Throwable) {
-                    tvNoti1.text = "알림 서버 연결 실패"
+                    tvNoti1.text = "서버 연결 실패"
                     Log.e("MAIN", "Noti Error: ${t.message}")
                 }
             })

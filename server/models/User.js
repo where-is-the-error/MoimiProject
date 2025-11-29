@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    name: { type: String, required: true }, // 앱의 'username'과 매핑
+    email: { type: String, required: true, unique: true }, // 앱의 'userId' 대신 이메일 사용
     password: { type: String, required: true },
+    phone: { type: String, default: "" }, // [추가됨] 전화번호 필드
     profile_img: { type: String, default: null },
     trust_score: { type: Number, default: 0 },
     fcm_token: { type: String, default: null },
-    // 위치 정보는 유저 문서 안에 내장 (Embedded)
     location: {
         latitude: Number,
         longitude: Number,

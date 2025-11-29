@@ -11,8 +11,7 @@ class ChatListAdapter(
     private val onItemClick: (ChatRoom) -> Unit
 ) : RecyclerView.Adapter<ChatListAdapter.ChatRoomViewHolder>() {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
-        // item_chat_list_row.xml 로딩
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatRoomViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_chat_list_row, parent, false)
         return ChatRoomViewHolder(view)
@@ -22,23 +21,17 @@ class ChatListAdapter(
         holder.bind(chatRooms[position])
     }
 
-        // 데이터 바인딩
-        holder.tvTitle.text = item.title       // 채팅방 이름 (예: 동양식당 팟)
-        holder.tvMessage.text = item.lastMessage // 마지막 메시지
+    override fun getItemCount(): Int = chatRooms.size
 
-        // 클릭 이벤트
-        holder.itemView.setOnClickListener {
-            onItemClick(item)
+    inner class ChatRoomViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        // XML ID와 일치시킴
+        private val tvTitle: TextView = itemView.findViewById(R.id.tv_chat_list_username)
+        private val tvMessage: TextView = itemView.findViewById(R.id.tv_chat_list_preview)
+
+        fun bind(chatRoom: ChatRoom) {
+            tvTitle.text = chatRoom.title
+            tvMessage.text = chatRoom.lastMessage
+            itemView.setOnClickListener { onItemClick(chatRoom) }
         }
-    }
-
-    override fun getItemCount() = chatList.size
-
-    class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        // XML ID와 정확히 일치시킴
-        val tvTitle: TextView = itemView.findViewById(R.id.tv_chat_list_username) // 채팅방 이름
-        val tvMessage: TextView = itemView.findViewById(R.id.tv_chat_list_preview) // 미리보기 내용
-
-        // (XML에 시간 표시하는 뷰가 없으므로 제거됨)
     }
 }

@@ -7,10 +7,11 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 // ==========================================
-// 1. [내 서버] Node.js API (로그인, 회원가입 등)
+// 1. [내 서버] Node.js API
 // ==========================================
 interface ApiService {
     @POST("api/auth/login")
@@ -19,7 +20,6 @@ interface ApiService {
     @POST("api/auth/register")
     fun register(@Body request: RegisterRequest): Call<RegisterResponse>
 
-    // ✅ 위치 업데이트 API (토큰을 헤더로 받음)
     @POST("api/users/locations")
     fun updateLocation(
         @Header("Authorization") token: String,
@@ -29,15 +29,13 @@ interface ApiService {
     @GET("api/meetings")
     fun getMeetings(
         @Header("Authorization") token: String
-    ): Call<MeetingListResponse> // MeetingListResponse는 DataModels.kt에 정의 필요
+    ): Call<MeetingListResponse>
 
     @POST("api/meetings")
     fun createMeeting(
         @Header("Authorization") token: String,
         @Body request: CreateMeetingRequest
     ): Call<MeetingCreationResponse>
-
-    // 이외 모임 생성 등 핵심 API (DataModels.kt에 DTO 정의 필요)
 }
 
 // ==========================================
@@ -75,7 +73,7 @@ interface ScheduleApiService {
 }
 
 // ==========================================
-// 4. [알림] 알림 API (추가됨 ✅)
+// 4. [알림] 알림 API
 // ==========================================
 interface NotificationApiService {
     @GET("api/notifications")
@@ -83,7 +81,6 @@ interface NotificationApiService {
         @Header("Authorization") token: String
     ): Call<NotificationResponse>
 }
-
 
 // ==========================================
 // 5. [네이버] 검색 API
@@ -116,12 +113,9 @@ interface TmapApiService {
     ): Call<TmapPoiResponse>
 }
 
-
 // ==========================================
 // [Retrofit 객체 모음]
 // ==========================================
-
-// 1. Node.js 서버 연결용 (Node.js API 전부 포함)
 object RetrofitClient {
     private const val BASE_URL_SERVER = "http://10.0.2.2:3000/" // 에뮬레이터 IP
 
@@ -144,13 +138,11 @@ object RetrofitClient {
         retrofit.create(ScheduleApiService::class.java)
     }
 
-    // [추가됨 ✅] 알림용 통신 기계
     val notificationInstance: NotificationApiService by lazy {
         retrofit.create(NotificationApiService::class.java)
     }
 }
 
-// 2. 네이버 API 연결용 (유지)
 object NaverClient {
     private const val BASE_URL_NAVER = "https://openapi.naver.com/"
 
@@ -163,16 +155,15 @@ object NaverClient {
     }
 }
 
-// 3. TMAP API 연결용 (유지)
 object TmapClient {
     private const val BASE_URL_TMAP = "https://apis.openapi.sk.com/"
 
-    val instance: TmapRouteApi by lazy {
+    // [수정] TmapRouteApi 삭제하고 TmapApiService만 사용
+    val instance: TmapApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL_TMAP)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(TmapRouteApi::class.java)
             .create(TmapApiService::class.java)
     }
 }

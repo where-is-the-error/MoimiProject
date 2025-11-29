@@ -37,4 +37,18 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
+router.get('/', authenticateToken, async (req, res) => {
+    try {
+        // 내 ID로 된 알림을 최신순으로 찾아서 반환
+        const notifications = await Notification.find({ user_id: req.user.userId })
+            .sort({ created_at: -1 }); // 최신순 정렬
+
+        res.json({ success: true, notifications });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+
 module.exports = router;
