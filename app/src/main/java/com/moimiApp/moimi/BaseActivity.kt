@@ -34,11 +34,17 @@ open class BaseActivity : AppCompatActivity() {
     protected fun setupDrawer() {
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout) ?: return
 
-        // 1. [핵심] 로고(m) 클릭 시 메인 화면으로 이동
-        // 모든 XML 레이아웃에 로고 ID가 'btn_home_logo'로 통일되어 있어야 함
+        // 🟢 [추가됨] 로그인한 사용자 정보로 프로필 텍스트 변경
+        val savedName = prefsManager.getUserName() ?: "게스트"
+        val savedId = prefsManager.getUserId() ?: "로그인 해주세요"
+
+        findViewById<TextView>(R.id.tv_user_name)?.text = savedName
+        findViewById<TextView>(R.id.tv_user_id)?.text = savedId
+        // ----------------------------------------------------
+
+        // 1. 로고(m) 클릭 시 메인 화면으로 이동
         findViewById<ImageView>(R.id.btn_home_logo)?.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
-            // 기존 스택을 비우고 메인을 새로 엽니다 (뒤로가기 꼬임 방지)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
         }
@@ -59,7 +65,6 @@ open class BaseActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.END)
         }
         findViewById<TextView>(R.id.menu_route)?.setOnClickListener {
-            // 길찾기 메인으로 이동
             moveActivity(RouteActivity::class.java)
             drawerLayout.closeDrawer(GravityCompat.END)
         }
@@ -75,6 +80,8 @@ open class BaseActivity : AppCompatActivity() {
             moveActivity(LocationShareActivity::class.java)
             drawerLayout.closeDrawer(GravityCompat.END)
         }
+
+        // 로그아웃
         findViewById<TextView>(R.id.tv_logout)?.setOnClickListener {
             prefsManager.clearSession()
             Toast.makeText(this, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
@@ -84,6 +91,7 @@ open class BaseActivity : AppCompatActivity() {
         }
     }
 
+    // 화면 이동 헬퍼 함수
     private fun moveActivity(targetClass: Class<*>) {
         if (this::class.java == targetClass) return
         val intent = Intent(this, targetClass)
@@ -91,7 +99,7 @@ open class BaseActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // 와이파이 체크 등 기존 함수 유지...
+    // 와이파이 체크 및 UI 업데이트 (기존 유지)
     protected fun checkWifiandUpdateUI(mapContainer: ViewGroup, tMapView: TMapView) {
         if (isWifiConnected()) {
             tMapView.visibility = View.VISIBLE
@@ -111,6 +119,7 @@ open class BaseActivity : AppCompatActivity() {
 
     private fun showWifiWarning(container: ViewGroup) {
         if (container.findViewWithTag<TextView>("wifi_warning") != null) return
+
         val warningText = TextView(this).apply {
             text = "와이파이를 연결해주세요"
             textSize = 20f
@@ -119,7 +128,8 @@ open class BaseActivity : AppCompatActivity() {
             setBackgroundColor(Color.parseColor("#F0F0F0"))
             tag = "wifi_warning"
             layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
             )
         }
         container.addView(warningText)
@@ -127,6 +137,8 @@ open class BaseActivity : AppCompatActivity() {
 
     private fun removeWifiWarning(container: ViewGroup) {
         val warningView = container.findViewWithTag<View>("wifi_warning")
-        if (warningView != null) container.removeView(warningView)
+        if (warningView != null) {
+            container.removeView(warningView)
+        }
     }
 }

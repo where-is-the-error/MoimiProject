@@ -12,29 +12,32 @@ import retrofit2.Response
 
 class ChatRoomActivity : BaseActivity() {
 
-    // 데이터 리스트 (화면에 보여질 것)
     private val msgList = mutableListOf<ChatMessage>()
     private lateinit var adapter: ChatAdapter
     private lateinit var rvMessages: RecyclerView
 
-    // ⚠️ [중요] 실제로는 로그인 후 저장된 토큰과, 이전 화면에서 넘겨받은 방 ID를 써야 합니다.
-    private val myToken = "Bearer 여기에_실제_토큰_입력"
-    private val roomId = "여기에_실제_방ID_입력"
-    private val myName = "철수" // 내 이름 (isMe 판단용)
+    // 🟢 [수정] 하드코딩 제거하고 실제 값 사용 (나중에 Intent로 roomId 받아야 함)
+    private var roomId = "111111111111111111111112" // 임시 방 ID (데이터베이스에 있는 모임 ID)
+    private var myName = "" // SharedPreferences에서 가져올 예정
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat_room_screen)
 
-        setupDrawer() // 공통 기능
+        setupDrawer()
 
-        // 1. 뷰 연결
+        // 🟢 [추가] 저장된 내 이름 가져오기
+        myName = prefsManager.getUserName() ?: "알 수 없음"
+
+        // (선택) 이전 화면에서 방 제목/ID 넘겨받기
+        intent.getStringExtra("roomTitle")?.let {
+            // 툴바 제목 변경 로직이 있다면 여기에 작성
+        }
+
         val btnSend = findViewById<Button>(R.id.btn_chat_send)
         val etInput = findViewById<EditText>(R.id.et_chat_input)
         rvMessages = findViewById(R.id.rv_chat_room_messages)
 
-        // 2. 리사이클러뷰 설정
-        // stackFromEnd = true : 키보드 올라오거나 채팅 왔을 때 아래부터 채워짐
         val layoutManager = LinearLayoutManager(this)
         layoutManager.stackFromEnd = true
         rvMessages.layoutManager = layoutManager
@@ -42,69 +45,54 @@ class ChatRoomActivity : BaseActivity() {
         adapter = ChatAdapter(msgList)
         rvMessages.adapter = adapter
 
-        // 3. 서버에서 채팅 내역 불러오기 (가짜 데이터 삭제됨)
         fetchChatHistory()
 
-        // 4. 전송 버튼 클릭
         btnSend.setOnClickListener {
             val text = etInput.text.toString()
             if (text.isNotEmpty()) {
-                sendMessageToServer(text) // 서버 전송 요청
-                etInput.text.clear()      // 입력창 비우기
+                sendMessageToServer(text)
+                etInput.text.clear()
             }
         }
     }
 
-    // [기능 1] 채팅 내역 불러오기
+    override fun onResume() {
+        super.onResume()
+        fetchChatHistory()
+    }
+
     private fun fetchChatHistory() {
-        RetrofitClient.chatInstance.getChatHistory(myToken, roomId)
+        val token = getAuthToken() // 🟢 토큰 사용
+        RetrofitClient.chatInstance.getChatHistory(token, roomId)
             .enqueue(object : Callback<ChatHistoryResponse> {
                 override fun onResponse(call: Call<ChatHistoryResponse>, response: Response<ChatHistoryResponse>) {
                     if (response.isSuccessful && response.body()?.success == true) {
                         val serverChats = response.body()!!.chats
-
-                        // 서버 데이터를 화면용 데이터(ChatMessage)로 변환
                         msgList.clear()
                         for (chat in serverChats) {
-                            val isMe = (chat.sender.name == myName) // 이름으로 내 메시지인지 확인 (임시)
-                            msgList.add(
-                                ChatMessage(
-                                    content = chat.message,
-                                    time = chat.createdAt, // 필요시 시간 포맷팅(오후 2:00) 변환 함수 추가 권장
-                                    isMe = isMe,
-                                    senderName = chat.sender.name
-                                )
-                            )
+                            val isMe = (chat.sender.name == myName) // 🟢 내 이름과 비교
+                            msgList.add(ChatMessage(chat.message, chat.createdAt, isMe, chat.sender.name))
                         }
                         adapter.notifyDataSetChanged()
-                        if (msgList.isNotEmpty()) {
-                            rvMessages.scrollToPosition(msgList.size - 1)
-                        }
+                        if (msgList.isNotEmpty()) rvMessages.scrollToPosition(msgList.size - 1)
                     }
                 }
                 override fun onFailure(call: Call<ChatHistoryResponse>, t: Throwable) {
-                    Toast.makeText(this@ChatRoomActivity, "채팅 불러오기 실패", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ChatRoomActivity, "채팅 로드 실패", Toast.LENGTH_SHORT).show()
                 }
             })
     }
 
-    // [기능 2] 메시지 서버로 전송하기
     private fun sendMessageToServer(message: String) {
+        val token = getAuthToken() // 🟢 토큰 사용
         val request = SendMessageRequest(roomId, message)
 
-        RetrofitClient.chatInstance.sendMessage(myToken, request)
+        RetrofitClient.chatInstance.sendMessage(token, request)
             .enqueue(object : Callback<SendMessageResponse> {
                 override fun onResponse(call: Call<SendMessageResponse>, response: Response<SendMessageResponse>) {
                     if (response.isSuccessful && response.body()?.success == true) {
-                        // 전송 성공! 화면에 내 메시지 추가
                         val newChat = response.body()!!.chat
-
-                        val myMsg = ChatMessage(
-                            content = newChat.message,
-                            time = "방금",
-                            isMe = true,
-                            senderName = myName
-                        )
+                        val myMsg = ChatMessage(newChat.message, "방금", true, myName)
                         msgList.add(myMsg)
                         adapter.notifyItemInserted(msgList.size - 1)
                         rvMessages.scrollToPosition(msgList.size - 1)

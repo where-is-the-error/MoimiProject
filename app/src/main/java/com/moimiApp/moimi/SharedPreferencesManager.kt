@@ -29,8 +29,12 @@ class SharedPreferencesManager(context: Context) {
         return prefs.getString(TOKEN_KEY, null)
     }
 
+
     // --- 세션 삭제 (로그아웃 시 사용) ---
     fun clearSession() {
         prefs.edit().clear().apply()
     }
+    // SharedPreferencesManager.kt 안에 추가
+    fun getUserId(): String? = prefs.getString(USER_ID_KEY, null)
+    fun getUserName(): String? = prefs.getString(USER_NAME_KEY, null)
 }

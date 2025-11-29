@@ -4,9 +4,12 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AlphaAnimation
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -21,35 +24,51 @@ import com.skt.tmap.overlay.TMapMarkerItem
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.Random
 
 class MainActivity : BaseActivity() {
 
     private lateinit var tMapView: TMapView
     private val myLocationMarker = TMapMarkerItem()
 
+    // 로딩 관련 변수
+    private lateinit var loadingOverlay: View
+    private lateinit var tvLoadingPercent: TextView
+    private lateinit var tvLoadingTip: TextView
+    private var progressStatus = 0
+    private val handler = Handler(Looper.getMainLooper())
+    private var isLoadingFinished = false // 로딩 중복 종료 방지
+
+    private val tips = listOf(
+        "Tip! 누군가의 차를 얻어탈때는\n차도 옆까지 10분 전에는 도착해있어야 해요!",
+        "Tip! 약속 시간에 늦을 것 같다면\n미리 채팅으로 친구들에게 알려주세요!",
+        "Tip! 모임 장소가 헷갈릴 땐\n지도를 확대해서 확인해보세요.",
+        "Tip! 출발하기 전에\n소지품을 한 번 더 확인해보세요!"
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ⭐ [추가됨] 로그인 상태 확인 로직
-        // 저장된 토큰이 없으면 로그인 화면으로 이동하고, 메인 화면은 종료(finish)합니다.
+        // 로그인 체크
         if (prefsManager.getToken() == null) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
-            finish() // 뒤로가기 눌러도 메인으로 못 오게 종료
+            finish()
             return
         }
 
         setContentView(R.layout.activity_main)
+
+        // 1. 로딩 화면 시작
+        initLoadingScreen()
+
         setupDrawer()
         checkPermissionAndStartService()
-
-        // 알림 가져오기
         fetchNotifications()
 
         // 지도 초기화
         val mapContainer = findViewById<ViewGroup>(R.id.map_container)
 
-        // TMAP 초기화 시 예외 처리 추가 (지도 백지화 방지 안전장치)
         try {
             tMapView = TMapView(this)
             mapContainer.addView(tMapView)
@@ -58,10 +77,78 @@ class MainActivity : BaseActivity() {
             tMapView.setOnMapReadyListener {
                 tMapView.zoomLevel = 15
                 startTrackingMyLocation()
+                // 지도 로딩 성공 시 로딩 종료
+                completeLoading()
             }
         } catch (e: Exception) {
             Log.e("MainActivity", "TMAP 초기화 오류: ${e.message}")
+            completeLoading()
         }
+
+        // ⭐ [추가] 안전장치: 4초가 지나도 지도가 안 뜨면 강제로 로딩 종료 (90% 멈춤 방지)
+        handler.postDelayed({
+            if (!isLoadingFinished) {
+                Log.w("MainActivity", "지도 로딩 시간 초과 -> 강제 진입")
+                completeLoading()
+            }
+        }, 4000) // 4초 대기
+    }
+
+    private fun initLoadingScreen() {
+        loadingOverlay = findViewById(R.id.loading_overlay)
+        tvLoadingPercent = findViewById(R.id.tv_loading_percent)
+        tvLoadingTip = findViewById(R.id.tv_loading_tip)
+
+        val randomTip = tips[Random().nextInt(tips.size)]
+        tvLoadingTip.text = randomTip
+
+        Thread {
+            while (progressStatus < 90) {
+                if (isLoadingFinished) break // 로딩 끝났으면 루프 탈출
+
+                progressStatus += 1
+                try {
+                    if (progressStatus < 50) Thread.sleep(20)
+                    else Thread.sleep(40)
+                } catch (e: InterruptedException) {
+                    e.printStackTrace()
+                }
+
+                handler.post {
+                    tvLoadingPercent.text = "로딩 $progressStatus%"
+                }
+            }
+        }.start()
+    }
+
+    private fun completeLoading() {
+        if (isLoadingFinished) return // 이미 끝났으면 실행 X
+        isLoadingFinished = true
+
+        Thread {
+            // 90% -> 100% 빠르게 채우기
+            while (progressStatus < 100) {
+                progressStatus += 2
+                try { Thread.sleep(5) } catch (e: Exception) {}
+                handler.post {
+                    tvLoadingPercent.text = "로딩 $progressStatus%"
+                }
+            }
+
+            // 100% 보여주고 잠시 뒤 사라짐
+            try { Thread.sleep(200) } catch (e: Exception) {}
+
+            handler.post {
+                hideLoadingWithAnimation()
+            }
+        }.start()
+    }
+
+    private fun hideLoadingWithAnimation() {
+        val fadeOut = AlphaAnimation(1f, 0f)
+        fadeOut.duration = 500
+        loadingOverlay.startAnimation(fadeOut)
+        loadingOverlay.visibility = View.GONE
     }
 
     private fun startTrackingMyLocation() {
@@ -75,13 +162,12 @@ class MainActivity : BaseActivity() {
             fusedClient.requestLocationUpdates(locationRequest, object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
                     result.lastLocation?.let { location ->
-                        // TMAP이 준비된 상태인지 확인 후 사용
                         if (::tMapView.isInitialized) {
                             tMapView.setCenterPoint(location.longitude, location.latitude)
 
                             myLocationMarker.id = "my_location"
                             myLocationMarker.setTMapPoint(TMapPoint(location.latitude, location.longitude))
-                            val bitmap = BitmapFactory.decodeResource(resources, R.drawable.profile) // 프로필 이미지 사용
+                            val bitmap = BitmapFactory.decodeResource(resources, R.drawable.profile)
                             myLocationMarker.icon = bitmap
                             myLocationMarker.setPosition(0.5f, 0.5f)
 
@@ -93,6 +179,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    // ... 기존 코드 (권한, 서비스, 알림 등) 유지 ...
     private fun checkPermissionAndStartService() {
         val permissions = mutableListOf(
             android.Manifest.permission.ACCESS_FINE_LOCATION,
@@ -129,7 +216,7 @@ class MainActivity : BaseActivity() {
     private fun fetchNotifications() {
         val tvNoti1 = findViewById<TextView>(R.id.tv_noti_1)
         val tvNoti2 = findViewById<TextView>(R.id.tv_noti_2)
-        val token = getAuthToken() // BaseActivity의 함수 사용
+        val token = getAuthToken()
 
         RetrofitClient.notificationInstance.getNotifications(token)
             .enqueue(object : Callback<NotificationResponse> {
@@ -150,5 +237,12 @@ class MainActivity : BaseActivity() {
                     Log.e("MAIN", "Noti Error: ${t.message}")
                 }
             })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (prefsManager.getToken() != null) {
+            fetchNotifications()
+        }
     }
 }
