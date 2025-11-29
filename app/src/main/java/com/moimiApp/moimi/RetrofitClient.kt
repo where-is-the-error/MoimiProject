@@ -9,7 +9,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
 
-// 1. [내 서버] 로그인/유저 서버 요청 (Node.js)
+// 1. 로그인/유저 서버 요청 기능 정의 (Node.js 서버)
 interface ApiService {
     @POST("api/auth/login")
     fun login(@Body request: LoginRequest): Call<LoginResponse>
@@ -17,6 +17,7 @@ interface ApiService {
     @POST("api/auth/register")
     fun register(@Body request: RegisterRequest): Call<RegisterResponse>
 
+    // ✅ 위치 업데이트 API (토큰을 헤더로 받음)
     @POST("api/users/locations")
     fun updateLocation(
         @Header("Authorization") token: String,
@@ -24,7 +25,7 @@ interface ApiService {
     ): Call<LocationResponse>
 }
 
-// 2. [네이버] 지역 검색 API
+// 2. 네이버 지역 검색 API 요청 기능 정의
 interface NaverSearchApi {
     @GET("v1/search/local.json")
     fun searchLocal(
@@ -35,31 +36,20 @@ interface NaverSearchApi {
     ): Call<SearchResponse>
 }
 
-// 3. [TMAP] 통합 API (경로 탐색 + 장소 검색) ✅ 수정됨
-interface TmapApiService {
-
-    // (1) 경로 탐색 (기존 기능)
+// 3. TMAP 경로 탐색 API 요청 기능 정의 (추가됨)
+interface TmapRouteApi {
     @POST("tmap/routes?version=1&format=json")
     fun getRoute(
         @Header("appKey") appKey: String,
         @Body body: RouteRequest
     ): Call<TmapRouteResponse>
-
-    // (2) 장소(POI) 검색 (추가된 기능)
-    // 식당 이름, 주소, 좌표 등을 가져옵니다.
-    @GET("tmap/pois?version=1&format=json")
-    fun searchPOI(
-        @Header("appKey") appKey: String,
-        @Query("searchKeyword") keyword: String, // 검색어 (예: 동양식당)
-        @Query("count") count: Int = 1           // 1개만 가져옴
-    ): Call<TmapPoiResponse>
 }
 
-// --- 통신 기계 인스턴스 ---
+// --- 통신 기계 인스턴스 생성 ---
 
-// Node.js 백엔드
+// Node.js 백엔드 서버 통신 기계
 object RetrofitClient {
-    private const val BASE_URL_SERVER = "http://10.0.2.2:3000/"
+    private const val BASE_URL_SERVER = "http://10.0.2.2:3000/" // 에뮬레이터용
 
     val instance: ApiService by lazy {
         Retrofit.Builder()
@@ -70,7 +60,7 @@ object RetrofitClient {
     }
 }
 
-// 네이버 클라이언트
+// 네이버 Open API 통신 기계
 object NaverClient {
     private const val BASE_URL_NAVER = "https://openapi.naver.com/"
 
@@ -83,15 +73,15 @@ object NaverClient {
     }
 }
 
-// TMAP 클라이언트 ✅ 수정됨
+// TMAP Open API 통신 기계
 object TmapClient {
     private const val BASE_URL_TMAP = "https://apis.openapi.sk.com/"
 
-    val instance: TmapApiService by lazy {
+    val instance: TmapRouteApi by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL_TMAP)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(TmapApiService::class.java) // 이름 바뀐 인터페이스 연결
+            .create(TmapRouteApi::class.java)
     }
 }

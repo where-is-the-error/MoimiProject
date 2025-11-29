@@ -59,3 +59,27 @@ data class Poi(
     val frontLat: String?,
     val frontLon: String?
 )
+
+// 예: 현재 날씨를 가져오는 Current Weather Data API의 JSON 구조에 맞게 작성
+data class WeatherData(
+    val name: String, // 도시 이름
+    val main: Main,   // 온도 정보
+    val weather: List<Weather> // 날씨 상태 목록
+)
+
+data class Main(
+    val temp: Double  // 현재 기온
+)
+
+data class Weather(
+    val description: String, // 상세 날씨 설명
+    val icon: String // 날씨 아이콘 코드
+)
+
+data class ChatMessage(
+    val meetingId: String,
+    val senderId: String,
+    val senderName: String,
+    val content: String,
+    val timestamp: String? = null // 보낼 땐 null, 받을 땐 서버가 준 시간
+)
