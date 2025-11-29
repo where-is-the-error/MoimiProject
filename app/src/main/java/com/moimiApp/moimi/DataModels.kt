@@ -88,3 +88,34 @@ data class MeetingListResponse(val success: Boolean, val meetings: List<Any>?)
 // --- 8. 알림 관련 ---
 data class NotificationResponse(val success: Boolean, val notifications: List<NotificationItem>)
 data class NotificationItem(val message: String)
+
+// --- 9. OpenWeatherMap 날씨 관련 ---
+
+data class OpenWeatherResponse(
+    // ⚠️ @SerializedName을 사용하여 JSON 필드명과 Kotlin 변수명을 연결합니다.
+    @SerializedName("weather") val weather: List<WeatherDescription>,
+    @SerializedName("main") val main: WeatherMain,
+    @SerializedName("wind") val wind: WindInfo,
+    @SerializedName("name") val cityName: String // 도시 이름
+)
+
+// 온도, 습도, 기압 등의 메인 정보
+data class WeatherMain(
+    @SerializedName("temp") val temp: Double, // 현재 온도 (예: 섭씨)
+    @SerializedName("feels_like") val feelsLike: Double, // 체감 온도
+    @SerializedName("temp_min") val tempMin: Double, // 최저 온도
+    @SerializedName("temp_max") val tempMax: Double, // 최고 온도
+    @SerializedName("humidity") val humidity: Int // 습도 (%)
+)
+
+// 날씨 상태 (맑음, 구름, 비 등)
+data class WeatherDescription(
+    @SerializedName("main") val condition: String, // 주요 날씨 상태 (예: Clouds, Rain)
+    @SerializedName("description") val detail: String, // 상세 설명 (예: overcast clouds)
+    @SerializedName("icon") val icon: String // 날씨 아이콘 ID
+)
+
+// 바람 정보
+data class WindInfo(
+    @SerializedName("speed") val speed: Double // 풍속
+)

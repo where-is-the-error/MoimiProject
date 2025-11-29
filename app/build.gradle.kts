@@ -1,6 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+}
+
+// 1. local.properties 파일 읽기 로직 추가
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
 }
 
 android {
@@ -14,6 +23,14 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // 2. BuildConfig 변수 생성 (String 타입, 이름: OPENWEATHER_API_KEY)
+        buildConfigField("String", "OPENWEATHER_API_KEY", "\"${localProperties["OPENWEATHER_API_KEY"]}\"")
+    }
+
+    buildFeatures {
+        // 3. BuildConfig 기능 활성화
+        buildConfig = true
+        viewBinding = true
     }
 
 
@@ -61,5 +78,5 @@ dependencies {
         exclude(group = "org.json", module = "json")
     }
     implementation("com.google.code.gson:gson:2.10.1")
-
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 }

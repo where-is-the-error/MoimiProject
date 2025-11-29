@@ -245,4 +245,41 @@ class MainActivity : BaseActivity() {
             fetchNotifications()
         }
     }
+
+    // 👇 날씨 정보를 가져오는 함수 (위도, 경도 필요)
+    private fun fetchWeatherData(lat: Double, lon: Double) {
+
+        // Retrofit 클라이언트 호출
+        OpenWeatherClient.instance.getCurrentWeather(lat, lon).enqueue(object : Callback<OpenWeatherResponse> {
+            override fun onResponse(call: Call<OpenWeatherResponse>, response: Response<OpenWeatherResponse>) {
+                if (response.isSuccessful) {
+                    val weather = response.body()
+                    weather?.let {
+                        // 1. 로그로 데이터 확인
+                        Log.d("Weather", "지역: ${it.cityName}, 온도: ${it.main.temp}, 날씨: ${it.weather[0].detail}")
+
+                        // 2. UI 업데이트 (TextView 예시)
+                        // binding.tvTemp.text = "${it.main.temp.toInt()}°C"
+                        // binding.tvDescription.text = it.weather[0].detail
+
+                        // 3. 날씨 아이콘 이미지 불러오기 (Glide 사용)
+                        val iconCode = it.weather[0].icon // 예: "10d"
+                        val iconUrl = "https://openweathermap.org/img/wn/$iconCode@2x.png"
+
+                        // ImageView에 이미지 넣기 (binding.ivWeatherIcon 이 있다고 가정)
+                        /* Glide.with(this@MainActivity)
+                            .load(iconUrl)
+                            .into(binding.ivWeatherIcon)
+                        */
+                    }
+                } else {
+                    Log.e("Weather", "응답 실패: ${response.code()}")
+                }
+            }
+
+            override fun onFailure(call: Call<OpenWeatherResponse>, t: Throwable) {
+                Log.e("Weather", "통신 오류: ${t.message}")
+            }
+        })
+    }
 }
