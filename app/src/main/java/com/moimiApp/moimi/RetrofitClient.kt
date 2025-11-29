@@ -9,6 +9,8 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import com.moimiApp.moimi.BuildConfig
+import kotlin.jvm.java
 
 // ==========================================
 // 1. [내 서버] Node.js API
@@ -165,5 +167,31 @@ object TmapClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(TmapApiService::class.java)
+    }
+}
+
+// ==========================================
+// 7. [OpenWeatherMap] 날씨 API
+// ==========================================
+interface OpenWeatherMapApi {
+    @GET("data/2.5/weather")
+    fun getCurrentWeather(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("appid") apiKey: String = BuildConfig.OPENWEATHER_API_KEY, // 🔐 보안 키 자동 적용
+        @Query("units") units: String = "metric", // 섭씨 온도 사용
+        @Query("lang") lang: String = "kr"        // 한국어 응답
+    ): Call<OpenWeatherResponse>
+}
+
+object OpenWeatherClient {
+    private const val BASE_URL_OPENWEATHER = "https://api.openweathermap.org/"
+
+    val instance: OpenWeatherMapApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_OPENWEATHER)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(OpenWeatherMapApi::class.java)
     }
 }
