@@ -6,12 +6,14 @@ import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
-import android.location.Geocoder
 import android.os.Bundle
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.ImageView
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.textfield.TextInputEditText
 import retrofit2.Call
 import retrofit2.Callback
@@ -25,6 +27,23 @@ class AddScheduleActivity : BaseActivity() {
     private var selectedDate = ""
     private var selectedTime = ""
 
+    private lateinit var etLocation: TextInputEditText
+    private lateinit var rgType: RadioGroup
+
+    // 알림 체크박스들
+    private lateinit var cb1h: CheckBox
+    private lateinit var cb2h: CheckBox
+    private lateinit var cb1d: CheckBox
+    private lateinit var cb7d: CheckBox
+
+    private val searchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val locationName = result.data?.getStringExtra("locationName")
+            if (locationName != null) {
+                etLocation.setText(locationName)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,14 +51,29 @@ class AddScheduleActivity : BaseActivity() {
 
         setupDrawer()
 
+        // 뷰 연결
         val btnBack = findViewById<ImageView>(R.id.btn_back)
         val etTitle = findViewById<TextInputEditText>(R.id.et_schedule_title)
         val tvDate = findViewById<TextView>(R.id.tv_input_date)
         val tvTime = findViewById<TextView>(R.id.tv_input_time)
-        val etLocation = findViewById<TextInputEditText>(R.id.et_schedule_location)
         val btnSave = findViewById<Button>(R.id.btn_save_schedule)
 
+        etLocation = findViewById(R.id.et_schedule_location)
+        rgType = findViewById(R.id.rg_schedule_type)
+
+        cb1h = findViewById(R.id.cb_1hour)
+        cb2h = findViewById(R.id.cb_2hour)
+        cb1d = findViewById(R.id.cb_1day)
+        cb7d = findViewById(R.id.cb_7day)
+
         btnBack.setOnClickListener { finish() }
+
+        // 장소 검색 연결
+        etLocation.isFocusable = false
+        etLocation.setOnClickListener {
+            val intent = Intent(this, SearchLocationActivity::class.java)
+            searchLauncher.launch(intent)
+        }
 
         // 날짜 선택
         tvDate.setOnClickListener {
@@ -59,20 +93,26 @@ class AddScheduleActivity : BaseActivity() {
             }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), false).show()
         }
 
-        // 저장 버튼 클릭
+        // 저장 버튼
         btnSave.setOnClickListener {
             val title = etTitle.text.toString()
             val locationName = etLocation.text.toString()
 
             if (title.isEmpty() || selectedDate.isEmpty() || selectedTime.isEmpty()) {
-                Toast.makeText(this, "모든 정보를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "필수 정보를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // 1. 서버 전송
-            val request = AddScheduleRequest(selectedDate, selectedTime, title, locationName)
+            // 1. 선택된 유형 확인
+            val type = if (rgType.checkedRadioButtonId == R.id.rb_checklist) "CHECKLIST" else "MEETING"
 
-            // ✅ [수정됨] getAuthToken() 사용하여 실제 토큰 전송
+            val request = AddScheduleRequest(
+                date = selectedDate,
+                time = selectedTime,
+                title = title,
+                location = locationName,
+                type = type // 서버로 유형 전송
+            )
             val token = getAuthToken()
 
             RetrofitClient.scheduleInstance.addSchedule(token, request)
@@ -81,15 +121,9 @@ class AddScheduleActivity : BaseActivity() {
                         if (response.isSuccessful && response.body()?.success == true) {
                             Toast.makeText(this@AddScheduleActivity, "저장 성공!", Toast.LENGTH_SHORT).show()
 
-                            // 알림 예약 실행
-                            scheduleAlarms(title, selectedDate, selectedTime)
+                            // 2. 알림 예약 실행
+                            scheduleCustomAlarms(title, selectedDate, selectedTime)
 
-                            // 위치 알림 등록
-                            if (locationName.isNotEmpty()) {
-                                registerLocationAlert(locationName)
-                            }
-
-                            // ✅ [추가됨] 목록 새로고침을 위한 성공 신호 보내기
                             setResult(RESULT_OK)
                             finish()
                         } else {
@@ -103,8 +137,7 @@ class AddScheduleActivity : BaseActivity() {
         }
     }
 
-    // (아래 알림/위치 관련 함수들은 그대로 유지)
-    private fun scheduleAlarms(title: String, date: String, time: String) {
+    private fun scheduleCustomAlarms(title: String, date: String, time: String) {
         val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
         val eventTime = Calendar.getInstance()
         try {
@@ -114,26 +147,29 @@ class AddScheduleActivity : BaseActivity() {
             return
         }
 
-        val alarm30min = eventTime.clone() as Calendar
-        alarm30min.add(Calendar.MINUTE, -30)
-        setAlarm(alarm30min.timeInMillis, "30분 전 알림: $title")
+        val eventMillis = eventTime.timeInMillis
 
-        val alarm1Week = eventTime.clone() as Calendar
-        alarm1Week.add(Calendar.DAY_OF_YEAR, -7)
-        setAlarm(alarm1Week.timeInMillis, "1주일 전 알림: $title")
+        // 체크된 항목에 따라 알림 등록
+        if (cb1h.isChecked) setAlarm(eventMillis - 60 * 60 * 1000, "1시간 전 알림: $title")
+        if (cb2h.isChecked) setAlarm(eventMillis - 2 * 60 * 60 * 1000, "2시간 전 알림: $title")
+        if (cb1d.isChecked) setAlarm(eventMillis - 24 * 60 * 60 * 1000, "1일 전 알림: $title")
+        if (cb7d.isChecked) setAlarm(eventMillis - 7 * 24 * 60 * 60 * 1000, "7일 전 알림: $title")
     }
 
     private fun setAlarm(triggerTime: Long, message: String) {
-        if (triggerTime < System.currentTimeMillis()) return
+        if (triggerTime < System.currentTimeMillis()) return // 이미 지난 시간은 알림 안 함
 
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(this, NotificationReceiver::class.java).apply {
             putExtra("msg", message)
         }
 
+        // RequestCode를 유니크하게 만들기 위해 시간을 사용 (알림 겹침 방지)
+        val uniqueId = (System.currentTimeMillis() % 100000).toInt() + (Math.random() * 1000).toInt()
+
         val pendingIntent = PendingIntent.getBroadcast(
             this,
-            System.currentTimeMillis().toInt(),
+            uniqueId,
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
@@ -141,21 +177,8 @@ class AddScheduleActivity : BaseActivity() {
         try {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
         } catch (e: SecurityException) {
+            // 안드로이드 12 이상에서 정확한 알림 권한 필요할 수 있음
             Toast.makeText(this, "알림 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun registerLocationAlert(address: String) {
-        val geocoder = Geocoder(this, Locale.getDefault())
-        try {
-            val addresses = geocoder.getFromLocationName(address, 1)
-            if (!addresses.isNullOrEmpty()) {
-                val lat = addresses[0].latitude
-                val lng = addresses[0].longitude
-                // TODO: Geofencing 등록 로직
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 }

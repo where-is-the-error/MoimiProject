@@ -24,7 +24,7 @@
 
         <meta-data
             android:name="com.skt.tmap.sdk.API_KEY"
-            android:value="QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL" />
+            android:value="AOdyR4LyWR1eENpQe8bDA1Jm8AkL2GssabUhp15X" />
 
         <activity
             android:name=".MainActivity"
@@ -39,22 +39,16 @@
         <activity android:name=".SignUpActivity" />
         <activity android:name=".FindAccountActivity" />
         <activity android:name=".ChatListActivity" />
-        <activity android:name=".ChatRoomActivity" />
+        <activity android:name=".ChatRoomActivity" android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".RouteActivity" />
         <activity android:name=".RouteDetailActivity" />
         <activity android:name=".RestaurantActivity" />
         <activity android:name=".LocationShareActivity" />
         <activity android:name=".ScheduleActivity" />
         <activity android:name=".AddScheduleActivity" />
-
         <activity android:name=".MyPageActivity" />
-
         <activity android:name=".MeetingListActivity" />
-
-        <activity
-            android:name=".ChatRoomActivity"
-            android:windowSoftInputMode="adjustResize" />
-
+        <activity android:name=".SearchLocationActivity" />
         <service
             android:name=".LocationService"
             android:foregroundServiceType="location"

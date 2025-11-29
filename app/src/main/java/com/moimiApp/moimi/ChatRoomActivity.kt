@@ -27,9 +27,6 @@ class ChatRoomActivity : BaseActivity() {
 
         setupDrawer()
 
-        // 🟢 [추가] 저장된 내 이름 가져오기
-        myName = prefsManager.getUserName() ?: "알 수 없음"
-
         // (선택) 이전 화면에서 방 제목/ID 넘겨받기
         intent.getStringExtra("roomTitle")?.let {
             // 툴바 제목 변경 로직이 있다면 여기에 작성
@@ -37,9 +34,7 @@ class ChatRoomActivity : BaseActivity() {
         // [추가] Intent로 전달받은 방 ID와 제목 가져오기
         roomId = intent.getStringExtra("roomId") ?: ""
         val roomTitle = intent.getStringExtra("roomTitle") ?: "채팅방"
-
-        // [추가] 내 이름 가져오기 (메시지 보낼 때 '나'인지 확인용)
-        myName = prefsManager.getUserName() ?: "나"
+        
 
         // 방 제목 설정
         val tvTitle = findViewById<TextView>(R.id.tv_chat_room_title)

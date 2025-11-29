@@ -16,24 +16,21 @@ class MeetingListActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_meeting_list) // XML 파일명 확인
+        setContentView(R.layout.activity_meeting_list)
 
-        setupDrawer() // 햄버거 메뉴 연결
+        setupDrawer()
 
         val rvMeetingList = findViewById<RecyclerView>(R.id.rv_meeting_list_container)
         rvMeetingList.layoutManager = LinearLayoutManager(this)
 
-        // [수정됨] 클릭 시 LocationShareActivity로 이동
         adapter = MeetingListAdapter(meetingList) { clickedItem ->
             val intent = Intent(this, LocationShareActivity::class.java)
-            // LocationShareActivity에서 받을 이름(Key)과 맞춰줍니다.
             intent.putExtra("meetingId", clickedItem.id)
             intent.putExtra("meetingTitle", clickedItem.title)
             startActivity(intent)
         }
         rvMeetingList.adapter = adapter
 
-        // 데이터 불러오기
         fetchMeetings()
     }
 
@@ -44,14 +41,16 @@ class MeetingListActivity : BaseActivity() {
             .enqueue(object : Callback<MeetingListResponse> {
                 override fun onResponse(call: Call<MeetingListResponse>, response: Response<MeetingListResponse>) {
                     if (response.isSuccessful && response.body()?.success == true) {
-                        val meetings = response.body()!!.meetings
-
                         meetingList.clear()
-                        meetingList.addAll(meetings)
+
+                        // [수정] 빌드 오류 해결: 안전하게 null 체크 후 추가
+                        response.body()?.meetings?.let {
+                            meetingList.addAll(it)
+                        }
 
                         adapter.notifyDataSetChanged()
 
-                        if (meetings.isEmpty()) {
+                        if (meetingList.isEmpty()) {
                             Toast.makeText(this@MeetingListActivity, "예정된 모임이 없습니다.", Toast.LENGTH_SHORT).show()
                         }
                     } else {

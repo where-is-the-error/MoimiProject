@@ -14,6 +14,8 @@ const notificationRoutes = require('./routes/notification.routes');
 const chatRoutes = require('./routes/chat.routes'); // ✅ 채팅 기록 라우트 임포트
 
 const Message = require('./models/Message'); // ✅ 메시지 모델 임포트
+const scheduleRouter = require('./routes/schedule.routes');
+
 
 const app = express();
 const server = http.createServer(app); // ✅ Express 앱으로 HTTP 서버 생성
@@ -45,6 +47,8 @@ app.use('/api/meetings', meetingRoutes);
 app.use('/api/invites', inviteRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chats', chatRoutes); // ✅ 채팅 기록 API 연결
+// ... 기존 app.use 코드들 아래에 추가
+app.use('/api/schedules', scheduleRouter);
 
 
 // -----------------------------------------------------

@@ -11,10 +11,11 @@ class ChatListActivity : BaseActivity() {
         setContentView(R.layout.activity_chat_list_screen)
         setupDrawer()
 
+        // [수정] XML ID인 'rv_chat_list_container' 사용
         val recyclerView = findViewById<RecyclerView>(R.id.rv_chat_list_container)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // ⚠️ ChatRoom은 이제 (제목, 내용) 2개만 받습니다. 에러 해결!
+        // ChatRoom 생성자 인자 개수 (2개) 확인
         val chatRooms = listOf(
             ChatRoom("철수와의 대화", "안녕? 뭐해?"),
             ChatRoom("모이미 프로젝트방", "내일 회의 시간 언제인가요?"),

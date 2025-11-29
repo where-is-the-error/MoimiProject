@@ -13,7 +13,7 @@ class LocationShareActivity : BaseActivity() {
 
     private lateinit var tMapView: TMapView
     // ⚠️ [중요] 실제 T Map Key가 맞는지 확인하세요
-    private val tMapKey = "QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL"
+    private val tMapKey = Constants.TMAP_API_KEY
 
     // 넘어온 모임 ID 저장용 변수
     private var currentMeetingId: String = ""
