@@ -31,6 +31,10 @@ app.use('/api/meetings', meetingRoutes);
 app.use('/api/invites', inviteRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-app.listen(PORT, () => {
+// require('dotenv').config();
+// ... (기존 require 및 use 코드) ...
+
+app.listen(PORT, '0.0.0.0', () => { // 👈 여기에 '0.0.0.0'을 추가해야 합니다!
     console.log(`🚀 모이미 서버 실행 중: http://localhost:${PORT}`);
+    console.log(`(외부 접속 주소: 0.0.0.0:${PORT})`); // 확인용 로그 추가
 });

@@ -183,12 +183,10 @@
         </LinearLayout>
     </ScrollView>
 
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navigation_view"
-        android:layout_width="wrap_content"
+    <include
+        layout="@layout/menu_drawer"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
-        android:layout_gravity="end"
-        android:background="#FFFFFF"
-        app:headerLayout="@layout/nav_header" />
+        android:layout_gravity="end" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

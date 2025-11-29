@@ -11,10 +11,10 @@ data class LocationRequest(val latitude: Double, val longitude: Double)
 data class LocationResponse(val success: Boolean, val message: String)
 data class RouteRequest(val startX: Double, val startY: Double, val endX: Double, val endY: Double)
 
-// --- 3. TMAP 경로 탐색 (작성해주신 부분) ---
+// --- 3. TMAP 경로 탐색 ---
 data class TmapRouteResponse(val features: List<Feature>)
 data class Feature(val type: String, val geometry: Geometry, val properties: Properties)
-data class Geometry(val type: String, val coordinates: Any) // Any로 두면 나중에 파싱할 때 주의 필요
+data class Geometry(val type: String, val coordinates: Any)
 data class Properties(
     val totalDistance: Int? = null,
     val totalTime: Int? = null,
@@ -23,6 +23,25 @@ data class Properties(
     val name: String? = null,
     val description: String? = null
 )
+
+// --- 4. 채팅 관련 ---
+data class ChatMessage(
+    val content: String,
+    val time: String,
+    val isMe: Boolean,
+    val senderName: String = ""
+)
+
+data class ChatRoom(
+    val title: String,
+    val lastMessage: String
+)
+
+// --- 5. 검색 관련 ---
+data class TmapPoiResponse(
+    val searchPoiInfo: SearchPoiInfo?
+)
+
 data class SearchResponse(
     val searchPoiInfo: SearchPoiInfo?
 )

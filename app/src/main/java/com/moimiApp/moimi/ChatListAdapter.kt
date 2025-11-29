@@ -7,39 +7,34 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class ChatListAdapter(
-    private val chatList: List<ChatRoom>,
+    private val chatRooms: List<ChatRoom>,
     private val onItemClick: (ChatRoom) -> Unit
-) : RecyclerView.Adapter<ChatListAdapter.ChatViewHolder>() {
+) : RecyclerView.Adapter<ChatListAdapter.ChatRoomViewHolder>() {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
-        // 회원님이 만드신 'item_chat_list_row.xml'을 가져옵니다.
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatRoomViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_chat_list_row, parent, false)
-        return ChatViewHolder(view)
+        return ChatRoomViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ChatViewHolder, position: Int) {
-        val item = chatList[position]
+    override fun onBindViewHolder(holder: ChatRoomViewHolder, position: Int) {
+        holder.bind(chatRooms[position])
+    }
 
-        // 데이터를 화면에 넣기
-        holder.tvTitle.text = item.title
-        holder.tvMessage.text = item.lastMessage
-        // holder.tvTime.text = item.time // (XML에 시간 ID가 없으면 주석 처리)
+    override fun getItemCount(): Int = chatRooms.size
 
-        // 클릭하면 채팅방으로 이동
-        holder.itemView.setOnClickListener {
-            onItemClick(item)
+    inner class ChatRoomViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        // ⚠️ [수정됨] XML 파일에 있는 정확한 ID 사용
+        private val tvTitle: TextView = itemView.findViewById(R.id.tv_chat_list_username)
+        private val tvMessage: TextView = itemView.findViewById(R.id.tv_chat_list_preview)
+
+        fun bind(chatRoom: ChatRoom) {
+            tvTitle.text = chatRoom.title
+            tvMessage.text = chatRoom.lastMessage
+
+            itemView.setOnClickListener {
+                onItemClick(chatRoom)
+            }
         }
-    }
-
-    override fun getItemCount() = chatList.size
-
-    class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        // item_chat_list_row.xml에 있는 ID들을 연결
-        val tvTitle: TextView = itemView.findViewById(R.id.tv_chat_list_username) // 이름
-        val tvMessage: TextView = itemView.findViewById(R.id.tv_chat_list_preview) // 내용
-
-        // 만약 XML에 시간 표시하는 TextView가 없다면 아래 줄은 지우세요.
-        // val tvTime: TextView = itemView.findViewById(R.id.tv_chat_list_time)
     }
 }

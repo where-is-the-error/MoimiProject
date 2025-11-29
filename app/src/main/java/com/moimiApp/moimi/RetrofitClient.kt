@@ -3,7 +3,11 @@ package com.moimiApp.moimi
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.Query
 
 // 1. [내 서버] 로그인/유저 서버 요청 (Node.js)
 interface ApiService {
