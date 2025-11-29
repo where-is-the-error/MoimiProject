@@ -27,11 +27,14 @@ class ScheduleActivity : BaseActivity() {
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var swipeRefresh: SwipeRefreshLayout // ⭐ [추가] 변수 선언
 
+    // ❌ [삭제] 하드코딩된 토큰 변수 삭제 (BaseActivity 기능을 쓸 것임)
+    // private val myToken = "Bearer 여기에_실제_토큰_입력"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_schedule)
 
-        // 0. Activity Result Launcher 등록 (일정 추가 후 돌아올 때)
+        // 0. 리절트 런처 (일정 추가 후 새로고침)
         resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 refreshData() // 데이터 새로고침
@@ -53,17 +56,15 @@ class ScheduleActivity : BaseActivity() {
         adapter = ScheduleAdapter(
             scheduleList,
             onItemClick = { item ->
-                // [짧게 클릭] 상세 보기 (나중에 구현)
-                Toast.makeText(this, "${item.title} 상세 보기", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "${item.title} 상세 보기 준비", Toast.LENGTH_SHORT).show()
             },
             onItemLongClick = { item ->
-                // [길게 클릭] 삭제 팝업
                 showDeleteDialog(item)
             }
         )
         rvSchedule.adapter = adapter
 
-        // 4. [달력 클릭 이벤트] 날짜 변경 시 해당 날짜 데이터 로드
+        // 4. 달력 클릭 이벤트
         calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
             tvSelectedDate.text = "${month + 1}월 ${dayOfMonth}일 일정"
             // 날짜 포맷: YYYY-MM-DD
@@ -79,6 +80,8 @@ class ScheduleActivity : BaseActivity() {
             today.get(Calendar.DAY_OF_MONTH)
         )
         refreshData()
+        currentLoadedDate = todayString
+        fetchSchedules(todayString)
 
         // 6. 일정 추가 버튼
         fabAdd.setOnClickListener {
@@ -115,6 +118,24 @@ class ScheduleActivity : BaseActivity() {
             return
         }
 
+    // 일정 삭제 확인 팝업
+    private fun showDeleteDialog(item: ScheduleItem) {
+        AlertDialog.Builder(this)
+            .setTitle("일정 삭제 확인")
+            .setMessage("'${item.title}' 일정을 삭제하시겠습니까?")
+            .setPositiveButton("삭제") { _, _ ->
+                Toast.makeText(this, "API 구현 후 삭제됩니다.", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    // 서버에서 일정 가져오기
+    private fun fetchSchedules(date: String) {
+
+        // ✅ [수정됨] BaseActivity의 getAuthToken() 사용하여 진짜 토큰 가져오기
+        val token = getAuthToken()
+
         RetrofitClient.scheduleInstance.getSchedules(token, date)
             .enqueue(object : Callback<ScheduleResponse> {
                 override fun onResponse(call: Call<ScheduleResponse>, response: Response<ScheduleResponse>) {
@@ -134,7 +155,7 @@ class ScheduleActivity : BaseActivity() {
                         }
                         adapter.notifyDataSetChanged()
                     } else {
-                        Toast.makeText(this@ScheduleActivity, "불러오기 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@ScheduleActivity, "일정 로드 실패", Toast.LENGTH_SHORT).show()
                     }
                 }
 

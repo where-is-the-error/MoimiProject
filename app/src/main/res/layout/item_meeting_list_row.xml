@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tv_meeting_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            tools:text="동양식당 저녁 모임"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <ImageView
+            android:id="@+id/iv_calendar"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_calendar"
+            android:layout_marginTop="12dp"
+            app:tint="#555555"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_meeting_title"/>
+
+        <TextView
+            android:id="@+id/tv_meeting_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="2025-09-22 17:00"
+            android:textSize="14sp"
+            android:textColor="#555555"
+            android:layout_marginStart="6dp"
+            app:layout_constraintStart_toEndOf="@id/iv_calendar"
+            app:layout_constraintTop_toTopOf="@id/iv_calendar"
+            app:layout_constraintBottom_toBottomOf="@id/iv_calendar"/>
+
+        <ImageView
+            android:id="@+id/iv_location"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_location"
+            android:layout_marginTop="8dp"
+            app:tint="#555555"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/iv_calendar"/>
+
+        <TextView
+            android:id="@+id/tv_meeting_location"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            tools:text="서울 구로구 경인로 445"
+            android:textSize="14sp"
+            android:textColor="#555555"
+            android:layout_marginStart="6dp"
+            app:layout_constraintStart_toEndOf="@id/iv_location"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/iv_location"
+            app:layout_constraintBottom_toBottomOf="@id/iv_location"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>

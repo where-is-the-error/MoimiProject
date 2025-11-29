@@ -13,7 +13,7 @@
         android:background="#FFFFFF">
 
         <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar_chat_list"
+            android:id="@+id/toolbar_meeting_list"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="#FFFFFF"
@@ -26,6 +26,16 @@
                 android:layout_height="50dp"
                 android:src="@drawable/logo"
                 android:layout_gravity="start"/>
+
+            <TextView
+                android:id="@+id/tv_page_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="내 모임 목록"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#000000"
+                android:layout_gravity="center"/>
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -48,22 +58,23 @@
                     android:src="@drawable/menu"
                     android:layout_marginEnd="16dp"/>
             </LinearLayout>
-
         </androidx.appcompat.widget.Toolbar>
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_chat_list_container"
+            android:id="@+id/rv_meeting_list_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            app:layout_constraintTop_toBottomOf="@id/toolbar_chat_list"
+            android:paddingTop="10dp"
+            android:clipToPadding="false"
+            app:layout_constraintTop_toBottomOf="@id/toolbar_meeting_list"
             app:layout_constraintBottom_toBottomOf="parent"
-            tools:listitem="@layout/item_chat_list_row"/>
+            tools:listitem="@layout/item_meeting_list_row"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <include
-        layout="@layout/menu_drawer"
-        android:layout_width="300dp"
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/navigation_view"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="end"
         android:background="#FFFFFF"

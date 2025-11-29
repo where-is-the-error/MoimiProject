@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.location.Geocoder
 import android.os.Bundle
-import android.provider.CalendarContract
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -19,14 +18,13 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 
 class AddScheduleActivity : BaseActivity() {
 
     private var selectedDate = ""
     private var selectedTime = ""
-    // ❌ [삭제] private val myToken = ... (더 이상 필요 없음)
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,28 +69,27 @@ class AddScheduleActivity : BaseActivity() {
                 return@setOnClickListener
             }
 
-            // 🟢 [수정] BaseActivity의 getAuthToken() 사용
-            val token = getAuthToken()
-            if (token.isEmpty()) {
-                Toast.makeText(this, "로그인이 필요합니다.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
             // 1. 서버 전송
             val request = AddScheduleRequest(selectedDate, selectedTime, title, locationName)
-            RetrofitClient.scheduleInstance.addSchedule(token, request) // myToken 대신 token 사용
+
+            // ✅ [수정됨] getAuthToken() 사용하여 실제 토큰 전송
+            val token = getAuthToken()
+
+            RetrofitClient.scheduleInstance.addSchedule(token, request)
                 .enqueue(object : Callback<ScheduleResponse> {
                     override fun onResponse(call: Call<ScheduleResponse>, response: Response<ScheduleResponse>) {
                         if (response.isSuccessful && response.body()?.success == true) {
-                            Toast.makeText(this@AddScheduleActivity, "일정이 저장되었습니다!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@AddScheduleActivity, "저장 성공!", Toast.LENGTH_SHORT).show()
 
+                            // 알림 예약 실행
                             scheduleAlarms(title, selectedDate, selectedTime)
-                            addScheduleToCalendar(title, selectedDate, selectedTime, locationName)
 
+                            // 위치 알림 등록
                             if (locationName.isNotEmpty()) {
                                 registerLocationAlert(locationName)
                             }
 
+                            // ✅ [추가됨] 목록 새로고침을 위한 성공 신호 보내기
                             setResult(RESULT_OK)
                             finish()
                         } else {
@@ -106,37 +103,16 @@ class AddScheduleActivity : BaseActivity() {
         }
     }
 
-    private fun addScheduleToCalendar(title: String, date: String, time: String, location: String) {
-        val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        val eventDate: Date? = try {
-            format.parse("$date $time")
-        } catch (e: Exception) { null }
-
-        if (eventDate == null) return
-
-        val startMillis = eventDate.time
-        val endMillis = startMillis + (60 * 60 * 1000)
-
-        val intent = Intent(Intent.ACTION_INSERT)
-            .setData(CalendarContract.Events.CONTENT_URI)
-            .putExtra(CalendarContract.Events.TITLE, title)
-            .putExtra(CalendarContract.Events.EVENT_LOCATION, location)
-            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis)
-            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, endMillis)
-            .putExtra(CalendarContract.Events.DESCRIPTION, "Moimi 앱에서 등록된 일정입니다.")
-            .putExtra(CalendarContract.Events.ALL_DAY, false)
-
-        if (intent.resolveActivity(packageManager) != null) {
-            startActivity(intent)
-        }
-    }
-
+    // (아래 알림/위치 관련 함수들은 그대로 유지)
     private fun scheduleAlarms(title: String, date: String, time: String) {
         val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
         val eventTime = Calendar.getInstance()
         try {
             eventTime.time = format.parse("$date $time")!!
-        } catch (e: Exception) { return }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return
+        }
 
         val alarm30min = eventTime.clone() as Calendar
         alarm30min.add(Calendar.MINUTE, -30)
@@ -164,7 +140,9 @@ class AddScheduleActivity : BaseActivity() {
 
         try {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-        } catch (e: SecurityException) { }
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "알림 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun registerLocationAlert(address: String) {
@@ -174,7 +152,10 @@ class AddScheduleActivity : BaseActivity() {
             if (!addresses.isNullOrEmpty()) {
                 val lat = addresses[0].latitude
                 val lng = addresses[0].longitude
+                // TODO: Geofencing 등록 로직
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
