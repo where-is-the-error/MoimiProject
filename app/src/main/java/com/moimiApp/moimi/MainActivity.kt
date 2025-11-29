@@ -10,6 +10,7 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
+import android.widget.FrameLayout // LayoutParams 사용을 위해 추가
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -37,7 +38,7 @@ class MainActivity : BaseActivity() {
     private lateinit var tvLoadingTip: TextView
     private var progressStatus = 0
     private val handler = Handler(Looper.getMainLooper())
-    private var isLoadingFinished = false // 로딩 중복 종료 방지
+    private var isLoadingFinished = false
 
     private val tips = listOf(
         "Tip! 누군가의 차를 얻어탈때는\n차도 옆까지 10분 전에는 도착해있어야 해요!",
@@ -49,7 +50,6 @@ class MainActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 로그인 체크
         if (prefsManager.getToken() == null) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
@@ -59,9 +59,7 @@ class MainActivity : BaseActivity() {
 
         setContentView(R.layout.activity_main)
 
-        // 1. 로딩 화면 시작
         initLoadingScreen()
-
         setupDrawer()
         checkPermissionAndStartService()
         fetchNotifications()
@@ -71,13 +69,30 @@ class MainActivity : BaseActivity() {
 
         try {
             tMapView = TMapView(this)
-            mapContainer.addView(tMapView)
+
+            // ⭐ [수정 1] 지도 뷰의 크기를 부모 레이아웃에 꽉 채우도록 명시적 설정
+            val params = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            mapContainer.addView(tMapView, params)
+
+            // API 키 설정
             tMapView.setSKTMapApiKey(tMapApiKey)
 
+            // ⭐ [수정 2] 인증 실패 로그 확인 (디버깅용)
+            // TMAP API 키가 틀렸거나 패키지명이 다르면 이 리스너가 작동할 수 있음
+            // (SDK 버전에 따라 이 리스너가 없을 수도 있으니, 빨간줄 뜨면 이 블록은 지워주세요)
+            /* tMapView.setOnApiKeyListener(object : TMapView.OnApiKeyListenerCallback {
+                override fun SKTMapApikeySucceed() { Log.d("TMAP_DEBUG", "인증 성공") }
+                override fun SKTMapApikeyFailed(msg: String?) { Log.e("TMAP_DEBUG", "인증 실패: $msg") }
+            })
+            */
+
             tMapView.setOnMapReadyListener {
+                Log.d("MainActivity", "TMAP 로딩 완료 (onMapReady)")
                 tMapView.zoomLevel = 15
                 startTrackingMyLocation()
-                // 지도 로딩 성공 시 로딩 종료
                 completeLoading()
             }
         } catch (e: Exception) {
@@ -85,13 +100,13 @@ class MainActivity : BaseActivity() {
             completeLoading()
         }
 
-        // ⭐ [추가] 안전장치: 4초가 지나도 지도가 안 뜨면 강제로 로딩 종료 (90% 멈춤 방지)
+        // 안전장치 (4초 뒤 강제 진입)
         handler.postDelayed({
             if (!isLoadingFinished) {
                 Log.w("MainActivity", "지도 로딩 시간 초과 -> 강제 진입")
                 completeLoading()
             }
-        }, 4000) // 4초 대기
+        }, 4000)
     }
 
     private fun initLoadingScreen() {
@@ -104,15 +119,12 @@ class MainActivity : BaseActivity() {
 
         Thread {
             while (progressStatus < 90) {
-                if (isLoadingFinished) break // 로딩 끝났으면 루프 탈출
-
+                if (isLoadingFinished) break
                 progressStatus += 1
                 try {
                     if (progressStatus < 50) Thread.sleep(20)
                     else Thread.sleep(40)
-                } catch (e: InterruptedException) {
-                    e.printStackTrace()
-                }
+                } catch (e: InterruptedException) { e.printStackTrace() }
 
                 handler.post {
                     tvLoadingPercent.text = "로딩 $progressStatus%"
@@ -122,25 +134,17 @@ class MainActivity : BaseActivity() {
     }
 
     private fun completeLoading() {
-        if (isLoadingFinished) return // 이미 끝났으면 실행 X
+        if (isLoadingFinished) return
         isLoadingFinished = true
 
         Thread {
-            // 90% -> 100% 빠르게 채우기
             while (progressStatus < 100) {
                 progressStatus += 2
                 try { Thread.sleep(5) } catch (e: Exception) {}
-                handler.post {
-                    tvLoadingPercent.text = "로딩 $progressStatus%"
-                }
+                handler.post { tvLoadingPercent.text = "로딩 $progressStatus%" }
             }
-
-            // 100% 보여주고 잠시 뒤 사라짐
             try { Thread.sleep(200) } catch (e: Exception) {}
-
-            handler.post {
-                hideLoadingWithAnimation()
-            }
+            handler.post { hideLoadingWithAnimation() }
         }.start()
     }
 
@@ -164,13 +168,11 @@ class MainActivity : BaseActivity() {
                     result.lastLocation?.let { location ->
                         if (::tMapView.isInitialized) {
                             tMapView.setCenterPoint(location.longitude, location.latitude)
-
                             myLocationMarker.id = "my_location"
                             myLocationMarker.setTMapPoint(TMapPoint(location.latitude, location.longitude))
                             val bitmap = BitmapFactory.decodeResource(resources, R.drawable.profile)
                             myLocationMarker.icon = bitmap
                             myLocationMarker.setPosition(0.5f, 0.5f)
-
                             tMapView.addTMapMarkerItem(myLocationMarker)
                         }
                     }
@@ -179,7 +181,6 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    // ... 기존 코드 (권한, 서비스, 알림 등) 유지 ...
     private fun checkPermissionAndStartService() {
         val permissions = mutableListOf(
             android.Manifest.permission.ACCESS_FINE_LOCATION,
@@ -234,7 +235,6 @@ class MainActivity : BaseActivity() {
                 }
                 override fun onFailure(call: Call<NotificationResponse>, t: Throwable) {
                     tvNoti1.text = "서버 연결 실패"
-                    Log.e("MAIN", "Noti Error: ${t.message}")
                 }
             })
     }
