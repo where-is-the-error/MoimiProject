@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:background="@drawable/bg_input_rounded"
+    android:layout_marginBottom="8dp">
+
+    <TextView
+        android:id="@+id/tv_schedule_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="17:00"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#FF8989"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_schedule_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        tools:text="동양식당 예약"
+        android:textSize="16sp"
+        android:textColor="#000000"
+        android:textStyle="bold"
+        android:layout_marginStart="16dp"
+        app:layout_constraintStart_toEndOf="@id/tv_schedule_time"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_schedule_location"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        tools:text="서울 구로구 경인로"
+        android:textSize="14sp"
+        android:textColor="#808080"
+        android:layout_marginTop="4dp"
+        app:layout_constraintStart_toStartOf="@id/tv_schedule_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_schedule_title" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

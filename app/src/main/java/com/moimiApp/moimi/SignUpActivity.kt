@@ -35,7 +35,7 @@ class SignUpActivity : AppCompatActivity() {
             }
 
             // 2. 서버로 보낼 데이터 준비
-            // 순서 주의: (이메일, 비번, 이름, 폰번호) -> DataModes.kt 순서와 같아야 함
+            // 순서 주의: (이메일, 비번, 이름, 폰번호) -> DataModels.kt 순서와 같아야 함
             val requestData = RegisterRequest(email, password, name, phone)
 
             // 3. Retrofit 호출

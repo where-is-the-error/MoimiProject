@@ -8,13 +8,11 @@ import androidx.recyclerview.widget.RecyclerView
 
 class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    // 뷰 타입 상수
     companion object {
         private const val TYPE_ME = 1
         private const val TYPE_OTHER = 2
     }
 
-    // 어떤 뷰를 쓸지 결정 (내 거냐 남의 거냐)
     override fun getItemViewType(position: Int): Int {
         return if (messages[position].isMe) TYPE_ME else TYPE_OTHER
     }
@@ -40,8 +38,9 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
 
     override fun getItemCount() = messages.size
 
-    // 내 메시지 뷰홀더
+    // [중요] 내 메시지 (item_chat_bubble_me.xml) ID 연결
     class MeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        // XML ID: tv_bubble_me_content, tv_bubble_me_time
         private val tvContent: TextView = itemView.findViewById(R.id.tv_bubble_me_content)
         private val tvTime: TextView = itemView.findViewById(R.id.tv_bubble_me_time)
 
@@ -51,8 +50,9 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
         }
     }
 
-    // 상대 메시지 뷰홀더
+    // [중요] 상대 메시지 (item_chat_bubble_other.xml) ID 연결
     class OtherViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        // XML ID: tv_bubble_other_name, tv_bubble_other_content, tv_bubble_other_time
         private val tvName: TextView = itemView.findViewById(R.id.tv_bubble_other_name)
         private val tvContent: TextView = itemView.findViewById(R.id.tv_bubble_other_content)
         private val tvTime: TextView = itemView.findViewById(R.id.tv_bubble_other_time)

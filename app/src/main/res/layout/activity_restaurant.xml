@@ -5,12 +5,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#ffffff">
+    android:layout_height="match_parent">
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="#FFFFFF">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -57,20 +57,20 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:background="?attr/selectableItemBackgroundBorderless"/>
-
             </LinearLayout>
 
             <ImageView
                 android:id="@+id/storeImage"
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="10dp"
                 android:scaleType="centerCrop"
                 android:src="@drawable/restaurant"
                 android:background="@drawable/bg_input_rounded"
                 android:clipToOutline="true"/>
 
             <TextView
+                android:id="@+id/tv_res_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -80,65 +80,62 @@
                 android:textColor="#000000"/>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@drawable/ic_phone"
                     app:tint="#555555"/>
-
                 <TextView
+                    android:id="@+id/tv_res_phone"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="123-4567-8910"
+                    android:text="02-1234-5678"
                     android:textColor="#333333"/>
             </LinearLayout>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@drawable/ic_calendar"
                     app:tint="#555555"/>
-
                 <TextView
+                    android:id="@+id/tv_res_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="9/22 17:00 예약"
+                    android:text="9/22 17:00"
                     android:textColor="#333333"/>
             </LinearLayout>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@drawable/ic_location"
                     app:tint="#555555"/>
-
                 <TextView
+                    android:id="@+id/tv_res_location"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="서울시 구로구 경인로"
+                    android:text="서울시 구로구 경인로 445"
                     android:textColor="#333333"/>
             </LinearLayout>
 
@@ -150,35 +147,48 @@
 
             <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="28dp"
-                android:text="참여자 현황"
+                android:layout_height="wrap_content"
+                android:text="함께할 친구 선택"
                 android:textColor="#000000"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
             <LinearLayout
+                android:id="@+id/layout_participants"
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
 
                 <CheckBox
+                    android:id="@+id/cb_friend_1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="짱구" />
-
                 <CheckBox
+                    android:id="@+id/cb_friend_2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true"
                     android:text="유리" />
-
                 <CheckBox
+                    android:id="@+id/cb_friend_3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true"
                     android:text="철수" />
             </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_confirm_reservation"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="예약하기"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:backgroundTint="#FF8989"
+                android:layout_marginTop="30dp"
+                android:layout_marginBottom="20dp"/>
 
         </LinearLayout>
     </ScrollView>

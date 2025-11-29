@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
     <application
         android:allowBackup="true"
@@ -34,8 +36,10 @@
             android:name="com.skt.tmap.sdk.API_KEY"
             android:value="QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL" />
 
+        <activity android:name=".MainActivity" />
+
         <activity
-            android:name=".MainActivity"
+            android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -43,7 +47,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".LoginActivity" />
+        <activity android:name=".MainActivity" />
         <activity android:name=".SignUpActivity" />
         <activity android:name=".FindAccountActivity" />
 
@@ -53,11 +57,30 @@
 
         <activity android:name=".RestaurantActivity" />
 
+        <activity android:name=".ChatListActivity" />
+
+        <activity android:name=".ScheduleActivity" />
+
+        <activity android:name=".AddScheduleActivity" />
+
+        <activity
+            android:name=".ChatRoomActivity"
+            android:windowSoftInputMode="adjustResize" />
+
         <service
             android:name=".LocationService"
             android:enabled="true"
             android:foregroundServiceType="location"
             android:exported="false" />
+
+        <receiver
+            android:name=".NotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
+        <service
+        android:name=".LocationService"
+        android:foregroundServiceType="location"
+        android:exported="false" />
 
     </application>
 </manifest>

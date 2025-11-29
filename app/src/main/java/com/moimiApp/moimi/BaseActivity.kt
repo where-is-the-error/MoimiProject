@@ -1,5 +1,6 @@
 package com.moimiApp.moimi
 
+import android.content.Context // Context import 추가
 import android.content.Intent
 import android.widget.ImageView
 import android.widget.TextView
@@ -10,7 +11,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 
 open class BaseActivity : AppCompatActivity() {
 
-    /* ✅ [추가] 여기에 키를 한 번만 적어두면, 모든 자식이 공짜로 씁니다.
+    //✅ [추가] 여기에 키를 한 번만 적어두면, 모든 자식이 공짜로 씁니다.
     // protected: 나(BaseActivity)와 내 자식들만 쓸 수 있다는 뜻
     protected val tMapApiKey = "QMIWUEYojt1y1hE2AgzXj3f1l0VH6IbI70yQTihL"
     protected fun checkWifiandUpdateUI(mapContainer: ViewGroup,tMapView: TMapView){
@@ -20,6 +21,102 @@ open class BaseActivity : AppCompatActivity() {
         }else{
             tMapView.visibility = View.GONE
             showWifiWarning(mapContainer)
+    // [추가 1] SharedPreferencesManager 초기화 (여기에 추가해야 합니다)
+    protected val prefsManager: SharedPreferencesManager by lazy {
+        SharedPreferencesManager(this)
+    }
+
+    // [추가 2] 토큰을 쉽게 가져오는 함수 (여기에 추가해야 합니다)
+    protected fun getAuthToken(): String {
+        val token = prefsManager.getToken() ?: ""
+        // API 호출 헤더에 필요한 "Bearer " 접두사를 붙여서 반환
+        return if (token.isNotEmpty()) "Bearer $token" else ""
+    }
+    protected lateinit var drawerLayout: DrawerLayout
+
+    protected fun setupDrawer() {
+        // 1. 뷰 찾기
+        drawerLayout = findViewById(R.id.drawer_layout)
+        val navigationView = findViewById<NavigationView>(R.id.navigation_view)
+
+        val btnLogo = findViewById<ImageView>(R.id.btn_home_logo)
+        val btnBell = findViewById<ImageView>(R.id.btn_notification)
+        val btnMenu = findViewById<ImageView>(R.id.btn_menu)
+
+        // 2. 네비게이션 헤더 내부 버튼 연결
+        if (navigationView.headerCount > 0) {
+            val headerView = navigationView.getHeaderView(0)
+
+            // [수정됨] X 버튼: 이제 누르면 메뉴만 닫힙니다. (화면 이동 X)
+            val btnClose = headerView.findViewById<ImageView>(R.id.btn_close_drawer)
+            btnClose?.setOnClickListener {
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+
+            // 메뉴: 채팅
+            val menuChatting = headerView.findViewById<TextView>(R.id.menu_chatting)
+            menuChatting?.setOnClickListener {
+                val intent = Intent(this, ChatListActivity::class.java)
+                startActivity(intent)
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+
+            // 메뉴: 길찾기
+            val menuRoute = headerView.findViewById<TextView>(R.id.menu_route)
+            menuRoute?.setOnClickListener {
+                val intent = Intent(this, RouteActivity::class.java)
+                startActivity(intent)
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+
+            // 메뉴: 음식점 예약
+            val menuRestaurant = headerView.findViewById<TextView>(R.id.menu_restaurant)
+            menuRestaurant?.setOnClickListener {
+                val intent = Intent(this, RestaurantActivity::class.java) // 이동할 곳 연결
+                startActivity(intent)
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+
+            // 메뉴: 일정
+            val menuSchedule = headerView.findViewById<TextView>(R.id.menu_schedule)
+            menuSchedule?.setOnClickListener {
+                val intent = Intent(this, ScheduleActivity::class.java)
+                startActivity(intent)
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+
+            // 메뉴: 위치공유
+            val menuLocation = headerView.findViewById<TextView>(R.id.menu_location_share)
+            menuLocation?.setOnClickListener {
+                val intent = Intent(this, LocationShareActivity::class.java)
+                startActivity(intent)
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+
+            // 메뉴: 로그아웃
+            val menuLogout = headerView.findViewById<TextView>(R.id.tv_logout)
+            menuLogout?.setOnClickListener {
+                Toast.makeText(this, "로그아웃", Toast.LENGTH_SHORT).show()
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+        }
+
+        // 3. 상단 툴바 버튼 동작
+        btnLogo?.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            startActivity(intent)
+        }
+
+        btnBell?.setOnClickListener {
+            val intent = Intent(this, ChatListActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnMenu?.setOnClickListener {
+            if (!drawerLayout.isDrawerOpen(GravityCompat.END)) {
+                drawerLayout.openDrawer(GravityCompat.END)
+            }
         }
     }
 
