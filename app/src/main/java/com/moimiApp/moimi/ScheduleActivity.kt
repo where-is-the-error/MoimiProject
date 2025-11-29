@@ -8,7 +8,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog // 👈 AlertDialog 사용을 위해 추가
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -25,13 +25,14 @@ class ScheduleActivity : BaseActivity() {
     private var currentLoadedDate: String = ""
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
 
-    private val myToken = "Bearer 여기에_실제_토큰_입력"
+    // ❌ [삭제] 하드코딩된 토큰 변수 삭제 (BaseActivity 기능을 쓸 것임)
+    // private val myToken = "Bearer 여기에_실제_토큰_입력"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_schedule)
 
-        // 0. Activity Result Launcher 등록
+        // 0. 리절트 런처 (일정 추가 후 새로고침)
         resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 fetchSchedules(currentLoadedDate)
@@ -48,23 +49,21 @@ class ScheduleActivity : BaseActivity() {
         val rvSchedule = findViewById<RecyclerView>(R.id.rv_schedule_list)
         val fabAdd = findViewById<FloatingActionButton>(R.id.fab_add_schedule)
 
-        // 3. 리사이클러뷰 설정 (오류 수정됨 ✅)
+        // 3. 리사이클러뷰 설정
         rvSchedule.layoutManager = LinearLayoutManager(this)
 
         adapter = ScheduleAdapter(
             scheduleList,
             onItemClick = { item ->
-                // [짧게 누를 때] 일정 상세/수정 화면으로 이동 로직
                 Toast.makeText(this, "${item.title} 상세 보기 준비", Toast.LENGTH_SHORT).show()
             },
             onItemLongClick = { item ->
-                // [길게 누를 때] 삭제 확인 팝업 호출
                 showDeleteDialog(item)
             }
         )
         rvSchedule.adapter = adapter
 
-        // 4. [달력 클릭 이벤트]
+        // 4. 달력 클릭 이벤트
         calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
             tvSelectedDate.text = "${month + 1}월 ${dayOfMonth}일 일정"
             val dateString = String.format("%d-%02d-%02d", year, month + 1, dayOfMonth)
@@ -83,7 +82,6 @@ class ScheduleActivity : BaseActivity() {
         currentLoadedDate = todayString
         fetchSchedules(todayString)
 
-
         // 6. 일정 추가 버튼
         fabAdd.setOnClickListener {
             val intent = Intent(this, AddScheduleActivity::class.java)
@@ -91,22 +89,25 @@ class ScheduleActivity : BaseActivity() {
         }
     }
 
-    // ⭐ [추가] 일정 삭제 확인 팝업 함수
+    // 일정 삭제 확인 팝업
     private fun showDeleteDialog(item: ScheduleItem) {
         AlertDialog.Builder(this)
             .setTitle("일정 삭제 확인")
             .setMessage("'${item.title}' 일정을 삭제하시겠습니까?")
             .setPositiveButton("삭제") { _, _ ->
-                // TODO: API 구현 후 deleteScheduleFromServer(item) 호출
-                Toast.makeText(this, "API 구현 후 삭제됩니다. (현재는 UX 테스트)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "API 구현 후 삭제됩니다.", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("취소", null)
             .show()
     }
 
-    // 서버에서 일정 가져오는 함수 (변동 없음)
+    // 서버에서 일정 가져오기
     private fun fetchSchedules(date: String) {
-        RetrofitClient.scheduleInstance.getSchedules(myToken, date)
+
+        // ✅ [수정됨] BaseActivity의 getAuthToken() 사용하여 진짜 토큰 가져오기
+        val token = getAuthToken()
+
+        RetrofitClient.scheduleInstance.getSchedules(token, date)
             .enqueue(object : Callback<ScheduleResponse> {
                 override fun onResponse(call: Call<ScheduleResponse>, response: Response<ScheduleResponse>) {
                     if (response.isSuccessful && response.body()?.success == true) {
@@ -122,7 +123,7 @@ class ScheduleActivity : BaseActivity() {
                         }
                         adapter.notifyDataSetChanged()
                     } else {
-                        Toast.makeText(this@ScheduleActivity, "불러오기 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@ScheduleActivity, "일정 로드 실패", Toast.LENGTH_SHORT).show()
                     }
                 }
 

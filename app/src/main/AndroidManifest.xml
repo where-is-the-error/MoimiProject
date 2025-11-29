@@ -53,6 +53,8 @@
 
         <activity android:name=".AddScheduleActivity" />
 
+        <activity android:name=".MyPageActivity" />
+
         <activity
             android:name=".ChatRoomActivity"
             android:windowSoftInputMode="adjustResize" />
