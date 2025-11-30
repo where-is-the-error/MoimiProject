@@ -28,7 +28,19 @@ data class RegisterResponse(val success: Boolean, val message: String)
 // --- 2. 위치/기타 ---
 data class LocationRequest(val latitude: Double, val longitude: Double)
 data class LocationResponse(val success: Boolean, val message: String)
-data class RouteRequest(val startX: Double, val startY: Double, val endX: Double, val endY: Double)
+// ⭐ [수정] TMAP 길찾기 요청 파라미터 보강 (필수값 추가)
+data class RouteRequest(
+    val startX: Double, // 경도 (Longitude)
+    val startY: Double, // 위도 (Latitude)
+    val endX: Double,
+    val endY: Double,
+    val reqCoordType: String = "WGS84GEO",
+    val resCoordType: String = "WGS84GEO",
+    val startName: String = "출발지",
+    val endName: String = "도착지",
+    val searchOption: Int = 0,
+    val totalValue: Int = 2 // ⚠️ 중요: 이 값이 2여야 택시 요금 및 상세 정보가 계산됨
+)
 
 // --- 3. TMAP 경로 탐색 ---
 data class TmapRouteResponse(val features: List<Feature>)

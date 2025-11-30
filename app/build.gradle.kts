@@ -56,12 +56,14 @@ android {
 }
 
 dependencies {
+    implementation ("com.github.bumptech.glide:glide:4.12.0")
     implementation(files("libs/vsm-tmap-sdk-v2-android-1.7.45.aar"))
     implementation(files("libs/tmap-sdk-3.0.aar"))
     //implementation("com.google.android.gms:play-services-maps:18.2.0")
     // 위치 및 통신 라이브러리
     implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     // 안드로이드 기본 라이브러리

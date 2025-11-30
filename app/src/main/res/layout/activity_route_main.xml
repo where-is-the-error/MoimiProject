@@ -24,7 +24,11 @@
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:src="@drawable/logo"
-                android:layout_gravity="start"/>
+                android:layout_gravity="start"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/desc_logo"/>
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -32,18 +36,28 @@
                 android:layout_gravity="end"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
+
                 <ImageView
                     android:id="@+id/btn_notification"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/bell"
-                    android:layout_marginEnd="16dp"/>
+                    android:layout_marginEnd="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/desc_notification"/>
+
                 <ImageView
                     android:id="@+id/btn_menu"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/menu"
-                    android:layout_marginEnd="16dp"/>
+                    android:layout_marginEnd="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/desc_menu"/>
             </LinearLayout>
         </androidx.appcompat.widget.Toolbar>
 
@@ -61,19 +75,23 @@
             app:cardElevation="16dp"
             app:cardCornerRadius="16dp"
             android:layout_marginBottom="-16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
             app:layout_constraintBottom_toBottomOf="parent">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="24dp"
+                android:paddingBottom="40dp">
 
                 <TextView
                     android:id="@+id/tv_route_start"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="출발지 - 고척스카이돔"
+                    android:text="@string/label_start_point"
                     android:textSize="16sp"
                     android:textColor="#000000"
                     android:layout_marginBottom="8dp"/>
@@ -82,7 +100,7 @@
                     android:id="@+id/tv_route_end"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="도착지 - 서울 구로구 안양천로"
+                    android:text="@string/label_end_point"
                     android:textSize="16sp"
                     android:textColor="#000000"
                     android:layout_marginBottom="24dp"/>
@@ -91,17 +109,20 @@
                     android:id="@+id/btn_route_summary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="고척스카이돔 ➔ 안양천로"
+                    android:text="@string/btn_route_summary"
                     android:gravity="center"
                     android:padding="12dp"
                     android:textStyle="bold"
                     android:background="#FFE4E1"
                     android:textColor="#000000"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:layout_marginBottom="24dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:baselineAligned="false"
                     android:orientation="horizontal">
 
                     <LinearLayout
@@ -111,7 +132,7 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <TextView
-                            android:text="도보"
+                            android:text="@string/label_walk"
                             android:background="#F08080"
                             android:textColor="#FFFFFF"
                             android:paddingHorizontal="16dp"
@@ -121,7 +142,7 @@
                             android:layout_marginBottom="8dp"/>
                         <TextView
                             android:id="@+id/tv_time_walk"
-                            android:text="10분"
+                            android:text="@string/default_time"
                             android:textStyle="bold"
                             android:textSize="16sp"
                             android:layout_width="wrap_content"
@@ -135,7 +156,7 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <TextView
-                            android:text="대중교통"
+                            android:text="@string/label_transit"
                             android:background="#F08080"
                             android:textColor="#FFFFFF"
                             android:paddingHorizontal="16dp"
@@ -145,7 +166,7 @@
                             android:layout_marginBottom="8dp"/>
                         <TextView
                             android:id="@+id/tv_time_transit"
-                            android:text="x"
+                            android:text="@string/default_time"
                             android:textStyle="bold"
                             android:textSize="16sp"
                             android:layout_width="wrap_content"
@@ -158,12 +179,12 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:gravity="center"
-                        android:orientation="vertical"
                         android:clickable="true"
                         android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="?attr/selectableItemBackground"
+                        android:orientation="vertical">
                         <TextView
-                            android:text="택시"
+                            android:text="@string/label_taxi"
                             android:background="#F08080"
                             android:textColor="#FFFFFF"
                             android:paddingHorizontal="16dp"
@@ -173,13 +194,23 @@
                             android:layout_marginBottom="8dp"/>
                         <TextView
                             android:id="@+id/tv_time_taxi"
-                            android:text="9분"
+                            android:text="@string/default_time"
                             android:textStyle="bold"
                             android:textSize="16sp"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"/>
                     </LinearLayout>
                 </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_detail_distance"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/calculating"
+                    android:textColor="#555555"/>
+
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </androidx.constraintlayout.widget.ConstraintLayout>

@@ -10,8 +10,9 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
-import android.widget.FrameLayout // LayoutParams 사용을 위해 추가
+import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationCallback
@@ -32,13 +33,24 @@ class MainActivity : BaseActivity() {
     private lateinit var tMapView: TMapView
     private val myLocationMarker = TMapMarkerItem()
 
-    // 로딩 관련 변수
+    // UI 요소
     private lateinit var loadingOverlay: View
     private lateinit var tvLoadingPercent: TextView
     private lateinit var tvLoadingTip: TextView
+
+    // 알림/일정 표시용 뷰
+    private lateinit var tvNoti1: TextView
+    private lateinit var tvNoti2: TextView
+    private lateinit var tvNoti3: TextView
+
+    // 다음 모임 정보 저장용 (길찾기 전달용)
+    private var nextMeetingLocation: String? = null
+    private var nextMeetingTitle: String? = null
+
     private var progressStatus = 0
     private val handler = Handler(Looper.getMainLooper())
     private var isLoadingFinished = false
+    private var isWeatherFetched = false
 
     private val tips = listOf(
         "Tip! 누군가의 차를 얻어탈때는\n차도 옆까지 10분 전에는 도착해있어야 해요!",
@@ -62,35 +74,47 @@ class MainActivity : BaseActivity() {
         initLoadingScreen()
         setupDrawer()
         checkPermissionAndStartService()
-        fetchNotifications()
+
+        // 뷰 연결
+        tvNoti1 = findViewById(R.id.tv_noti_1)
+        tvNoti2 = findViewById(R.id.tv_noti_2)
+        tvNoti3 = findViewById(R.id.tv_noti_3)
+
+        // 데이터 불러오기
+        fetchDashboardData()
 
         // 지도 초기화
         val mapContainer = findViewById<ViewGroup>(R.id.map_container)
+        val mapOverlay = findViewById<View>(R.id.view_map_overlay)
+
+        // [핵심] 지도 클릭(오버레이 클릭) 시 길찾기 화면으로 이동
+        mapOverlay.setOnClickListener {
+            val intent = Intent(this, RouteActivity::class.java)
+
+            if (nextMeetingLocation != null) {
+                // 다음 모임이 있으면 그곳으로 안내
+                intent.putExtra("destName", nextMeetingLocation)
+                intent.putExtra("destTitle", nextMeetingTitle)
+            } else {
+                // 모임이 없으면 '서울역'을 기본 목적지로 설정하여 이동
+                Toast.makeText(this, "예정된 모임이 없어 서울역으로 안내합니다.", Toast.LENGTH_SHORT).show()
+                intent.putExtra("destName", "서울역")
+                intent.putExtra("destTitle", "서울역 (테스트)")
+            }
+            startActivity(intent)
+        }
 
         try {
             tMapView = TMapView(this)
-
-            // ⭐ [수정 1] 지도 뷰의 크기를 부모 레이아웃에 꽉 채우도록 명시적 설정
             val params = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
             mapContainer.addView(tMapView, params)
-
-            // API 키 설정
             tMapView.setSKTMapApiKey(tMapApiKey)
 
-            // ⭐ [수정 2] 인증 실패 로그 확인 (디버깅용)
-            // TMAP API 키가 틀렸거나 패키지명이 다르면 이 리스너가 작동할 수 있음
-            // (SDK 버전에 따라 이 리스너가 없을 수도 있으니, 빨간줄 뜨면 이 블록은 지워주세요)
-            /* tMapView.setOnApiKeyListener(object : TMapView.OnApiKeyListenerCallback {
-                override fun SKTMapApikeySucceed() { Log.d("TMAP_DEBUG", "인증 성공") }
-                override fun SKTMapApikeyFailed(msg: String?) { Log.e("TMAP_DEBUG", "인증 실패: $msg") }
-            })
-            */
-
             tMapView.setOnMapReadyListener {
-                Log.d("MainActivity", "TMAP 로딩 완료 (onMapReady)")
+                Log.d("MainActivity", "TMAP 로딩 완료")
                 tMapView.zoomLevel = 15
                 startTrackingMyLocation()
                 completeLoading()
@@ -100,14 +124,55 @@ class MainActivity : BaseActivity() {
             completeLoading()
         }
 
-        // 안전장치 (4초 뒤 강제 진입)
         handler.postDelayed({
-            if (!isLoadingFinished) {
-                Log.w("MainActivity", "지도 로딩 시간 초과 -> 강제 진입")
-                completeLoading()
-            }
+            if (!isLoadingFinished) completeLoading()
         }, 4000)
     }
+
+    private fun fetchDashboardData() {
+        val token = getAuthToken()
+
+        // 1. 알림 가져오기
+        RetrofitClient.notificationInstance.getNotifications(token).enqueue(object : Callback<NotificationResponse> {
+            override fun onResponse(call: Call<NotificationResponse>, response: Response<NotificationResponse>) {
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val notiList = response.body()!!.notifications
+                    if (notiList.isNotEmpty()) {
+                        tvNoti1.text = notiList[0].message
+                        if (notiList.size > 1) tvNoti2.text = notiList[1].message
+                    } else {
+                        tvNoti1.text = "새로운 알림이 없습니다."
+                        tvNoti2.text = ""
+                    }
+                }
+            }
+            override fun onFailure(call: Call<NotificationResponse>, t: Throwable) {}
+        })
+
+        // 2. 내 모임(일정) 가져오기 -> tv_noti_3에 표시 및 길찾기 목적지 설정
+        RetrofitClient.instance.getMeetings(token).enqueue(object : Callback<MeetingListResponse> {
+            override fun onResponse(call: Call<MeetingListResponse>, response: Response<MeetingListResponse>) {
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val meetings = response.body()!!.meetings
+                    if (!meetings.isNullOrEmpty()) {
+                        // 가장 가까운 모임 하나 가져오기
+                        val nextMeeting = meetings[0]
+                        val displayStr = "${nextMeeting.dateTime} ${nextMeeting.title}"
+                        tvNoti3.text = displayStr
+
+                        // [중요] 길찾기용 변수 저장
+                        nextMeetingLocation = nextMeeting.location
+                        nextMeetingTitle = nextMeeting.title
+                    } else {
+                        tvNoti3.text = "예정된 모임이 없습니다."
+                    }
+                }
+            }
+            override fun onFailure(call: Call<MeetingListResponse>, t: Throwable) {}
+        })
+    }
+
+    // ... (기존 initLoadingScreen, startTrackingMyLocation, fetchWeatherData 등 나머지 코드는 그대로 유지) ...
 
     private fun initLoadingScreen() {
         loadingOverlay = findViewById(R.id.loading_overlay)
@@ -174,6 +239,11 @@ class MainActivity : BaseActivity() {
                             myLocationMarker.icon = bitmap
                             myLocationMarker.setPosition(0.5f, 0.5f)
                             tMapView.addTMapMarkerItem(myLocationMarker)
+
+                            if (!isWeatherFetched) {
+                                isWeatherFetched = true
+                                fetchWeatherData(location.latitude, location.longitude)
+                            }
                         }
                     }
                 }
@@ -214,72 +284,36 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    private fun fetchNotifications() {
-        val tvNoti1 = findViewById<TextView>(R.id.tv_noti_1)
-        val tvNoti2 = findViewById<TextView>(R.id.tv_noti_2)
-        val token = getAuthToken()
+    private fun fetchNotifications() { /* ... 위에서 이미 fetchDashboardData로 통합함 ... */ }
 
-        RetrofitClient.notificationInstance.getNotifications(token)
-            .enqueue(object : Callback<NotificationResponse> {
-                override fun onResponse(call: Call<NotificationResponse>, response: Response<NotificationResponse>) {
-                    if (response.isSuccessful && response.body()?.success == true) {
-                        val notiList = response.body()!!.notifications
-                        if (notiList.isNotEmpty()) tvNoti1.text = notiList[0].message
-                        else tvNoti1.text = "새로운 알림이 없습니다."
-
-                        if (notiList.size >= 2) tvNoti2.text = notiList[1].message
-                        else tvNoti2.text = ""
-                    } else {
-                        tvNoti1.text = "알림 로드 실패"
-                    }
-                }
-                override fun onFailure(call: Call<NotificationResponse>, t: Throwable) {
-                    tvNoti1.text = "서버 연결 실패"
-                }
-            })
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (prefsManager.getToken() != null) {
-            fetchNotifications()
-        }
-    }
-
-    // 👇 날씨 정보를 가져오는 함수 (위도, 경도 필요)
+    // [수정] 날씨 정보를 가져와서 UI(아이콘 + 텍스트)에 적용
     private fun fetchWeatherData(lat: Double, lon: Double) {
-
-        // Retrofit 클라이언트 호출
         OpenWeatherClient.instance.getCurrentWeather(lat, lon).enqueue(object : Callback<OpenWeatherResponse> {
             override fun onResponse(call: Call<OpenWeatherResponse>, response: Response<OpenWeatherResponse>) {
                 if (response.isSuccessful) {
                     val weather = response.body()
                     weather?.let {
-                        // 1. 로그로 데이터 확인
-                        Log.d("Weather", "지역: ${it.cityName}, 온도: ${it.main.temp}, 날씨: ${it.weather[0].detail}")
+                        val tvWeatherInfo = findViewById<TextView>(R.id.tv_weather_info)
+                        val ivWeatherIcon = findViewById<android.widget.ImageView>(R.id.iv_weather_icon)
 
-                        // 2. UI 업데이트 (TextView 예시)
-                        // binding.tvTemp.text = "${it.main.temp.toInt()}°C"
-                        // binding.tvDescription.text = it.weather[0].detail
+                        val temp = it.main.temp.toInt()
+                        val desc = it.weather[0].detail
+                        val iconCode = it.weather[0].icon
 
-                        // 3. 날씨 아이콘 이미지 불러오기 (Glide 사용)
-                        val iconCode = it.weather[0].icon // 예: "10d"
+                        tvWeatherInfo.text = "$temp°C $desc"
+
                         val iconUrl = "https://openweathermap.org/img/wn/$iconCode@2x.png"
-
-                        // ImageView에 이미지 넣기 (binding.ivWeatherIcon 이 있다고 가정)
-                        /* Glide.with(this@MainActivity)
-                            .load(iconUrl)
-                            .into(binding.ivWeatherIcon)
-                        */
+                        try {
+                            com.bumptech.glide.Glide.with(this@MainActivity)
+                                .load(iconUrl)
+                                .into(ivWeatherIcon)
+                        } catch (e: NoClassDefFoundError) {
+                            Log.e("Weather", "Glide 오류")
+                        }
                     }
-                } else {
-                    Log.e("Weather", "응답 실패: ${response.code()}")
                 }
             }
-
-            override fun onFailure(call: Call<OpenWeatherResponse>, t: Throwable) {
-                Log.e("Weather", "통신 오류: ${t.message}")
-            }
+            override fun onFailure(call: Call<OpenWeatherResponse>, t: Throwable) {}
         })
     }
 }

@@ -20,6 +20,7 @@ object Constants {
     // 2. API 키 설정
     // ==========================
     const val TMAP_API_KEY = "AOdyR4LyWR1eENpQe8bDA1Jm8AkL2GssabUhp15X"
+    const val OPENWEATHER_API_KEY="4511add96f9a93c2529d1e72c19aac6f"
 
     // ==========================
     // 3. 내부 저장소(SharedPreferences) 키 설정

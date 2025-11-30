@@ -135,17 +135,26 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/widget1">
+
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:orientation="vertical"
                     android:gravity="center">
+
+                    <ImageView
+                        android:id="@+id/iv_weather_icon"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@mipmap/ic_launcher"
+                        android:layout_marginBottom="4dp"/>
+
                     <TextView
                         android:id="@+id/tv_weather_info"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="24°C 맑음"
+                        android:text="날씨 로딩중..."
                         android:textStyle="bold"
                         android:textColor="#000000"/>
                 </LinearLayout>
@@ -190,6 +199,18 @@
             android:background="#E0E0E0"
             app:layout_constraintTop_toBottomOf="@+id/layout_widgets"
             app:layout_constraintBottom_toBottomOf="parent" />
+
+        <View
+            android:id="@+id/view_map_overlay"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintStart_toStartOf="@id/map_container"
+            app:layout_constraintEnd_toEndOf="@id/map_container"
+            app:layout_constraintTop_toTopOf="@id/map_container"
+            app:layout_constraintBottom_toBottomOf="@id/map_container" />
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/loading_overlay"
             android:layout_width="match_parent"

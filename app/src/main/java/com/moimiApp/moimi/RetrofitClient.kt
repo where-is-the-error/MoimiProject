@@ -1,5 +1,6 @@
 package com.moimiApp.moimi
 
+// import com.moimiApp.moimi.BuildConfig // ❌ BuildConfig 제거 (필요 없음)
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -9,8 +10,6 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
-import com.moimiApp.moimi.BuildConfig
-import kotlin.jvm.java
 
 // ==========================================
 // 1. [내 서버] Node.js API
@@ -101,8 +100,16 @@ interface NaverSearchApi {
 // 6. [TMAP] 경로/장소 API
 // ==========================================
 interface TmapApiService {
+    // 1. 자동차(택시) 경로
     @POST("tmap/routes?version=1&format=json")
     fun getRoute(
+        @Header("appKey") appKey: String,
+        @Body body: RouteRequest
+    ): Call<TmapRouteResponse>
+
+    // ⭐ [추가] 보행자(도보) 경로 API 추가
+    @POST("tmap/routes/pedestrian?version=1&format=json")
+    fun getPedestrianRoute(
         @Header("appKey") appKey: String,
         @Body body: RouteRequest
     ): Call<TmapRouteResponse>
@@ -178,7 +185,8 @@ interface OpenWeatherMapApi {
     fun getCurrentWeather(
         @Query("lat") lat: Double,
         @Query("lon") lon: Double,
-        @Query("appid") apiKey: String = BuildConfig.OPENWEATHER_API_KEY, // 🔐 보안 키 자동 적용
+        // ⭐ [수정] BuildConfig 대신 Constants의 키 사용
+        @Query("appid") apiKey: String = Constants.OPENWEATHER_API_KEY,
         @Query("units") units: String = "metric", // 섭씨 온도 사용
         @Query("lang") lang: String = "kr"        // 한국어 응답
     ): Call<OpenWeatherResponse>
