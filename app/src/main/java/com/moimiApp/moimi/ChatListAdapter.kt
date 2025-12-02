@@ -7,8 +7,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class ChatListAdapter(
-    private val chatRooms: List<ChatRoom>,
-    private val onItemClick: (ChatRoom) -> Unit
+    private val chatRooms: List<ChatRoomItem>, // ChatRoom -> ChatRoomItem 변경
+    private val onItemClick: (ChatRoomItem) -> Unit
 ) : RecyclerView.Adapter<ChatListAdapter.ChatRoomViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatRoomViewHolder {
@@ -24,11 +24,10 @@ class ChatListAdapter(
     override fun getItemCount(): Int = chatRooms.size
 
     inner class ChatRoomViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        // XML ID와 일치시킴
         private val tvTitle: TextView = itemView.findViewById(R.id.tv_chat_list_username)
         private val tvMessage: TextView = itemView.findViewById(R.id.tv_chat_list_preview)
 
-        fun bind(chatRoom: ChatRoom) {
+        fun bind(chatRoom: ChatRoomItem) {
             tvTitle.text = chatRoom.title
             tvMessage.text = chatRoom.lastMessage
             itemView.setOnClickListener { onItemClick(chatRoom) }

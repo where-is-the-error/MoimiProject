@@ -42,11 +42,14 @@ open class BaseActivity : AppCompatActivity() {
     }
 
     private fun setupMenuLinks(drawerLayout: DrawerLayout) {
+        // [수정] menu_meeting_list(내 모임) 연결 추가
         val menuIds = mapOf(
             R.id.menu_chatting to ChatListActivity::class.java,
+            R.id.menu_meeting_list to MeetingListActivity::class.java, // ✅ 추가됨
             R.id.menu_route to RouteActivity::class.java,
             R.id.menu_restaurant to RestaurantActivity::class.java,
-            R.id.menu_location_share to LocationShareActivity::class.java
+            R.id.menu_location_share to LocationShareActivity::class.java,
+            R.id.menu_schedule to ScheduleActivity::class.java // ✅ 일정도 맵에 통합
         )
 
         menuIds.forEach { (id, activityClass) ->
@@ -56,14 +59,6 @@ open class BaseActivity : AppCompatActivity() {
                 startActivity(intent)
                 drawerLayout.closeDrawer(GravityCompat.END)
             }
-        }
-
-        // [수정됨] 일정 메뉴 클릭 시 ScheduleActivity로 이동하도록 변경
-        findViewById<TextView>(R.id.menu_schedule)?.setOnClickListener {
-            val intent = Intent(this, ScheduleActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            startActivity(intent)
-            drawerLayout.closeDrawer(GravityCompat.END)
         }
 
         findViewById<TextView>(R.id.tv_logout)?.setOnClickListener {

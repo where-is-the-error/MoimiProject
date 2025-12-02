@@ -28,10 +28,10 @@ data class RegisterResponse(val success: Boolean, val message: String)
 // --- 2. 위치/기타 ---
 data class LocationRequest(val latitude: Double, val longitude: Double)
 data class LocationResponse(val success: Boolean, val message: String)
-// ⭐ [수정] TMAP 길찾기 요청 파라미터 보강 (필수값 추가)
+
 data class RouteRequest(
-    val startX: Double, // 경도 (Longitude)
-    val startY: Double, // 위도 (Latitude)
+    val startX: Double,
+    val startY: Double,
     val endX: Double,
     val endY: Double,
     val reqCoordType: String = "WGS84GEO",
@@ -39,10 +39,9 @@ data class RouteRequest(
     val startName: String = "출발지",
     val endName: String = "도착지",
     val searchOption: Int = 0,
-    val totalValue: Int = 2 // ⚠️ 중요: 이 값이 2여야 택시 요금 및 상세 정보가 계산됨
+    val totalValue: Int = 2
 )
 
-// --- 3. TMAP 경로 탐색 ---
 data class TmapRouteResponse(val features: List<Feature>)
 data class Feature(val type: String, val geometry: Geometry, val properties: Properties)
 data class Geometry(val type: String, val coordinates: Any)
@@ -63,6 +62,10 @@ data class Sender(val name: String)
 data class SendMessageRequest(val roomId: String, val message: String)
 data class SendMessageResponse(val success: Boolean, val chat: ChatLog)
 
+// ⭐ [신규] 이메일로 초대 요청/응답
+data class InviteByEmailRequest(val email: String)
+data class InviteResponse(val success: Boolean, val message: String)
+
 // --- 5. 검색 관련 ---
 data class TmapPoiResponse(val searchPoiInfo: SearchPoiInfo?)
 data class SearchResponse(val searchPoiInfo: SearchPoiInfo?)
@@ -70,48 +73,83 @@ data class SearchPoiInfo(val pois: Pois?)
 data class Pois(val poi: List<Poi>?)
 data class Poi(val name: String?, val frontLat: String?, val frontLon: String?)
 
-// --- 6. 일정 관련 (모임장/참여자 기능 추가) ---
-// src/main/java/com/moimiApp/moimi/DataModels.kt
-
-// [수정] AddScheduleRequest에 type 필드 추가
+// --- 6. 일정 관련 ---
 data class AddScheduleRequest(
     val date: String,
     val time: String,
     val title: String,
     val location: String,
-    val inviteUserIds: List<String>? = null,
-
-    // ⭐ [추가] 일정 유형 (예: "MEETING", "CHECKLIST")
     val type: String = "MEETING"
 )
 
-// [수정] ScheduleItem에도 type 추가 (받아올 때 필요)
 data class ScheduleItem(
     val id: String = "",
     val time: String,
+    val date: String? = null,
     val title: String,
     val location: String,
+    val inviteCode: String? = null,
     val leaderName: String = "",
     val leaderId: String = "",
     val memberNames: List<String> = emptyList(),
     val isLeader: Boolean = false,
-
-    // ⭐ [추가]
     val type: String = "MEETING"
 )
 
-data class ScheduleResponse(val success: Boolean, val schedules: List<ScheduleItem>?)
+data class ScheduleResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val schedules: List<ScheduleItem>? = null,
+    val scheduleId: String? = null,
+    val inviteCode: String? = null
+)
+
+data class SingleScheduleResponse(
+    val success: Boolean,
+    val schedule: ScheduleItem?
+)
+
+data class JoinScheduleResponse(
+    val success: Boolean,
+    val message: String,
+    val scheduleId: String? = null
+)
+
+data class JoinByCodeRequest(val inviteCode: String)
 
 // --- 7. 모임(예약) 관련 ---
 data class CreateMeetingRequest(val title: String, val location: String, val dateTime: String, val reservationRequired: Boolean)
 data class MeetingCreationResponse(val success: Boolean, val message: String)
 
-// [수정] MeetingItem 정의 및 적용
 data class MeetingItem(
     val id: String,
     val title: String,
     val dateTime: String,
     val location: String
+)
+// ⭐ [신규] 1:1 채팅방 생성 요청
+data class CreatePrivateChatRequest(
+    val targetEmail: String
+)
+
+// ⭐ [신규] 1:1 채팅방 생성 응답
+data class CreatePrivateChatResponse(
+    val success: Boolean,
+    val message: String,
+    val roomId: String?,
+    val title: String?
+)
+
+// ⭐ [신규] 채팅방 목록 아이템 (기존 ChatRoom 클래스 대체 또는 수정)
+data class ChatRoomItem(
+    @SerializedName("id") val id: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("lastMessage") val lastMessage: String
+)
+
+data class ChatRoomListResponse(
+    val success: Boolean,
+    val rooms: List<ChatRoomItem>
 )
 data class MeetingListResponse(val success: Boolean, val meetings: List<MeetingItem>?)
 
@@ -119,33 +157,28 @@ data class MeetingListResponse(val success: Boolean, val meetings: List<MeetingI
 data class NotificationResponse(val success: Boolean, val notifications: List<NotificationItem>)
 data class NotificationItem(val message: String)
 
-// --- 9. OpenWeatherMap 날씨 관련 ---
-
+// --- 9. 날씨 관련 ---
 data class OpenWeatherResponse(
-    // ⚠️ @SerializedName을 사용하여 JSON 필드명과 Kotlin 변수명을 연결합니다.
     @SerializedName("weather") val weather: List<WeatherDescription>,
     @SerializedName("main") val main: WeatherMain,
     @SerializedName("wind") val wind: WindInfo,
-    @SerializedName("name") val cityName: String // 도시 이름
+    @SerializedName("name") val cityName: String
 )
 
-// 온도, 습도, 기압 등의 메인 정보
 data class WeatherMain(
-    @SerializedName("temp") val temp: Double, // 현재 온도 (예: 섭씨)
-    @SerializedName("feels_like") val feelsLike: Double, // 체감 온도
-    @SerializedName("temp_min") val tempMin: Double, // 최저 온도
-    @SerializedName("temp_max") val tempMax: Double, // 최고 온도
-    @SerializedName("humidity") val humidity: Int // 습도 (%)
+    @SerializedName("temp") val temp: Double,
+    @SerializedName("feels_like") val feelsLike: Double,
+    @SerializedName("temp_min") val tempMin: Double,
+    @SerializedName("temp_max") val tempMax: Double,
+    @SerializedName("humidity") val humidity: Int
 )
 
-// 날씨 상태 (맑음, 구름, 비 등)
 data class WeatherDescription(
-    @SerializedName("main") val condition: String, // 주요 날씨 상태 (예: Clouds, Rain)
-    @SerializedName("description") val detail: String, // 상세 설명 (예: overcast clouds)
-    @SerializedName("icon") val icon: String // 날씨 아이콘 ID
+    @SerializedName("main") val condition: String,
+    @SerializedName("description") val detail: String,
+    @SerializedName("icon") val icon: String
 )
 
-// 바람 정보
 data class WindInfo(
-    @SerializedName("speed") val speed: Double // 풍속
+    @SerializedName("speed") val speed: Double
 )

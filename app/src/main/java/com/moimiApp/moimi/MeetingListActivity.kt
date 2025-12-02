@@ -18,11 +18,12 @@ class MeetingListActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_meeting_list)
 
-        setupDrawer()
+        setupDrawer() // 메뉴 드로워 연결
 
         val rvMeetingList = findViewById<RecyclerView>(R.id.rv_meeting_list_container)
         rvMeetingList.layoutManager = LinearLayoutManager(this)
 
+        // 리스트 아이템 클릭 시 위치 공유 화면으로 이동 (필요시 변경 가능)
         adapter = MeetingListAdapter(meetingList) { clickedItem ->
             val intent = Intent(this, LocationShareActivity::class.java)
             intent.putExtra("meetingId", clickedItem.id)
@@ -43,7 +44,7 @@ class MeetingListActivity : BaseActivity() {
                     if (response.isSuccessful && response.body()?.success == true) {
                         meetingList.clear()
 
-                        // [수정] 빌드 오류 해결: 안전하게 null 체크 후 추가
+                        // 안전하게 null 체크 후 리스트에 추가
                         response.body()?.meetings?.let {
                             meetingList.addAll(it)
                         }

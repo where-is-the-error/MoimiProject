@@ -1,6 +1,5 @@
 package com.moimiApp.moimi
 
-// import com.moimiApp.moimi.BuildConfig // ❌ BuildConfig 제거 (필요 없음)
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -37,6 +36,14 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: CreateMeetingRequest
     ): Call<MeetingCreationResponse>
+
+    // ⭐ [추가] 이메일로 모임 초대
+    @POST("api/meetings/{meetingId}/invite-email")
+    fun inviteByEmail(
+        @Header("Authorization") token: String,
+        @Path("meetingId") meetingId: String,
+        @Body request: InviteByEmailRequest
+    ): Call<InviteResponse>
 }
 
 // ==========================================
@@ -54,6 +61,19 @@ interface ChatApiService {
         @Header("Authorization") token: String,
         @Body request: SendMessageRequest
     ): Call<SendMessageResponse>
+
+    // ⭐ [신규] 1:1 채팅방 만들기
+    @POST("api/chats/private")
+    fun createPrivateChat(
+        @Header("Authorization") token: String,
+        @Body request: CreatePrivateChatRequest
+    ): Call<CreatePrivateChatResponse>
+
+    // ⭐ [신규] 내 채팅방 목록 가져오기
+    @GET("api/chats/rooms/my")
+    fun getMyChatRooms(
+        @Header("Authorization") token: String
+    ): Call<ChatRoomListResponse>
 }
 
 // ==========================================
@@ -71,6 +91,24 @@ interface ScheduleApiService {
         @Header("Authorization") token: String,
         @Query("date") date: String
     ): Call<ScheduleResponse>
+
+    @GET("api/schedules/{scheduleId}")
+    fun getSchedule(
+        @Header("Authorization") token: String,
+        @Path("scheduleId") scheduleId: String
+    ): Call<SingleScheduleResponse>
+
+    @POST("api/schedules/{scheduleId}/join")
+    fun joinSchedule(
+        @Header("Authorization") token: String,
+        @Path("scheduleId") scheduleId: String
+    ): Call<JoinScheduleResponse>
+
+    @POST("api/schedules/join/code")
+    fun joinScheduleByCode(
+        @Header("Authorization") token: String,
+        @Body request: JoinByCodeRequest
+    ): Call<JoinScheduleResponse>
 }
 
 // ==========================================
@@ -100,14 +138,12 @@ interface NaverSearchApi {
 // 6. [TMAP] 경로/장소 API
 // ==========================================
 interface TmapApiService {
-    // 1. 자동차(택시) 경로
     @POST("tmap/routes?version=1&format=json")
     fun getRoute(
         @Header("appKey") appKey: String,
         @Body body: RouteRequest
     ): Call<TmapRouteResponse>
 
-    // ⭐ [추가] 보행자(도보) 경로 API 추가
     @POST("tmap/routes/pedestrian?version=1&format=json")
     fun getPedestrianRoute(
         @Header("appKey") appKey: String,
@@ -126,7 +162,6 @@ interface TmapApiService {
 // [Retrofit 객체 모음]
 // ==========================================
 object RetrofitClient {
-    // 🟢 [수정] 전역 상수 파일에서 가져오기
     private const val BASE_URL_SERVER = Constants.BASE_URL
 
     private val retrofit by lazy {
@@ -185,10 +220,9 @@ interface OpenWeatherMapApi {
     fun getCurrentWeather(
         @Query("lat") lat: Double,
         @Query("lon") lon: Double,
-        // ⭐ [수정] BuildConfig 대신 Constants의 키 사용
         @Query("appid") apiKey: String = Constants.OPENWEATHER_API_KEY,
-        @Query("units") units: String = "metric", // 섭씨 온도 사용
-        @Query("lang") lang: String = "kr"        // 한국어 응답
+        @Query("units") units: String = "metric",
+        @Query("lang") lang: String = "kr"
     ): Call<OpenWeatherResponse>
 }
 

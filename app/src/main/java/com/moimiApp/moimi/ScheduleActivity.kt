@@ -3,7 +3,9 @@ package com.moimiApp.moimi
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.widget.CalendarView
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -31,29 +33,40 @@ class ScheduleActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_schedule)
 
-        // 0. 리절트 런처
+        // 일정 추가 후 돌아왔을 때 새로고침
         resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
+                Log.d("ScheduleActivity", "일정 추가 후 돌아옴. 데이터 새로고침.")
                 refreshData()
             }
         }
 
-        // 1. 공통 메뉴(Drawer) 설정
         setupDrawer()
 
-        // 2. 뷰 연결
         val calendarView = findViewById<CalendarView>(R.id.calendarView)
         val tvSelectedDate = findViewById<TextView>(R.id.tv_selected_date)
         val rvSchedule = findViewById<RecyclerView>(R.id.rv_schedule_list)
         val fabAdd = findViewById<FloatingActionButton>(R.id.fab_add_schedule)
         swipeRefresh = findViewById(R.id.swipe_refresh_layout)
 
-        // 3. 리사이클러뷰 설정
+        fabAdd.setOnClickListener {
+            showAddOrJoinDialog()
+        }
+
         rvSchedule.layoutManager = LinearLayoutManager(this)
+
         adapter = ScheduleAdapter(
             scheduleList,
             onItemClick = { item ->
-                Toast.makeText(this, "${item.title} 상세 보기 준비", Toast.LENGTH_SHORT).show()
+                val bottomSheet = ScheduleDetailBottomSheet.newInstance(
+                    item.title,
+                    currentLoadedDate,
+                    item.time,
+                    item.location,
+                    item.id,
+                    item.inviteCode ?: ""
+                )
+                bottomSheet.show(supportFragmentManager, ScheduleDetailBottomSheet.TAG)
             },
             onItemLongClick = { item ->
                 showDeleteDialog(item)
@@ -61,56 +74,108 @@ class ScheduleActivity : BaseActivity() {
         )
         rvSchedule.adapter = adapter
 
-        // 4. 달력 클릭 이벤트
+        // 달력 날짜 선택 리스너
         calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
+            val monthStr = (month + 1).toString().padStart(2, '0')
+            val dayStr = dayOfMonth.toString().padStart(2, '0')
+
             tvSelectedDate.text = "${month + 1}월 ${dayOfMonth}일 일정"
-            currentLoadedDate = String.format("%d-%02d-%02d", year, month + 1, dayOfMonth)
+            currentLoadedDate = "$year-$monthStr-$dayStr"
+
+            Log.d("ScheduleActivity", "달력 선택됨: $currentLoadedDate")
             refreshData()
         }
 
-        // 5. 초기 화면 설정 (오늘 날짜)
+        // 초기 날짜(오늘) 설정
         val today = Calendar.getInstance()
-        currentLoadedDate = String.format("%d-%02d-%02d",
-            today.get(Calendar.YEAR),
-            today.get(Calendar.MONTH) + 1,
-            today.get(Calendar.DAY_OF_MONTH)
-        )
+        val year = today.get(Calendar.YEAR)
+        val month = (today.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
+        val day = today.get(Calendar.DAY_OF_MONTH).toString().padStart(2, '0')
 
-        // [수정] todayString 삭제하고 바로 refreshData 호출
+        currentLoadedDate = "$year-$month-$day"
+        tvSelectedDate.text = "${today.get(Calendar.MONTH) + 1}월 ${today.get(Calendar.DAY_OF_MONTH)}일 일정"
+
+        Log.d("ScheduleActivity", "초기 날짜 설정: $currentLoadedDate")
         refreshData()
 
-        // 6. 일정 추가 버튼
-        fabAdd.setOnClickListener {
-            val intent = Intent(this, AddScheduleActivity::class.java)
-            resultLauncher.launch(intent)
-        }
-
-        // 7. 당겨서 새로고침
         swipeRefresh.setOnRefreshListener {
+            Log.d("ScheduleActivity", "새로고침 요청")
             refreshData()
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (currentLoadedDate.isNotEmpty()) {
-            refreshData()
+    private fun showAddOrJoinDialog() {
+        val options = arrayOf("새 일정 만들기", "초대 코드로 참여하기")
+        AlertDialog.Builder(this)
+            .setTitle("일정 추가")
+            .setItems(options) { _, which ->
+                if (which == 0) {
+                    val intent = Intent(this, AddScheduleActivity::class.java)
+                    resultLauncher.launch(intent)
+                } else {
+                    showJoinByCodeDialog()
+                }
+            }
+            .show()
+    }
+
+    private fun showJoinByCodeDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_join_schedule, null)
+        val etCode = dialogView.findViewById<EditText>(R.id.et_invite_code)
+        val btnCancel = dialogView.findViewById<TextView>(R.id.btn_cancel_join)
+        val btnConfirm = dialogView.findViewById<TextView>(R.id.btn_confirm_join)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+
+        btnConfirm.setOnClickListener {
+            val code = etCode.text.toString().trim()
+            if (code.length == 6) {
+                joinSchedule(code)
+                dialog.dismiss()
+            } else {
+                Toast.makeText(this, "6자리 코드를 입력해주세요.", Toast.LENGTH_SHORT).show()
+            }
         }
+
+        dialog.show()
+    }
+
+    private fun joinSchedule(code: String) {
+        val token = getAuthToken()
+        RetrofitClient.scheduleInstance.joinScheduleByCode(token, JoinByCodeRequest(code))
+            .enqueue(object : Callback<JoinScheduleResponse> {
+                override fun onResponse(call: Call<JoinScheduleResponse>, response: Response<JoinScheduleResponse>) {
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        Toast.makeText(this@ScheduleActivity, response.body()?.message, Toast.LENGTH_SHORT).show()
+                        refreshData()
+                    } else {
+                        Toast.makeText(this@ScheduleActivity, response.body()?.message ?: "참여 실패", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<JoinScheduleResponse>, t: Throwable) {
+                    Toast.makeText(this@ScheduleActivity, "통신 오류", Toast.LENGTH_SHORT).show()
+                }
+            })
     }
 
     private fun refreshData() {
         fetchSchedules(currentLoadedDate)
     }
 
-    // 서버에서 일정 가져오기
     private fun fetchSchedules(date: String) {
         val token = getAuthToken()
-
         if (token.isEmpty()) {
-            swipeRefresh.isRefreshing = false
+            Log.e("ScheduleActivity", "토큰 없음. 로그인 필요.")
             Toast.makeText(this, "로그인이 필요합니다.", Toast.LENGTH_SHORT).show()
+            swipeRefresh.isRefreshing = false
             return
         }
+
+        Log.d("ScheduleActivity", "서버로 일정 요청: $date")
 
         RetrofitClient.scheduleInstance.getSchedules(token, date)
             .enqueue(object : Callback<ScheduleResponse> {
@@ -122,31 +187,32 @@ class ScheduleActivity : BaseActivity() {
                         scheduleList.clear()
 
                         if (!serverData.isNullOrEmpty()) {
-                            // ScheduleItem 데이터 클래스와 서버 응답 구조가 일치한다고 가정
+                            Log.d("ScheduleActivity", "일정 로드 성공: ${serverData.size}개")
                             scheduleList.addAll(serverData)
+                        } else {
+                            Log.d("ScheduleActivity", "일정 로드 성공: 0개 (일정 없음)")
+                            Toast.makeText(this@ScheduleActivity, "해당 날짜에 일정이 없습니다.", Toast.LENGTH_SHORT).show()
                         }
                         adapter.notifyDataSetChanged()
                     } else {
+                        Log.e("ScheduleActivity", "서버 응답 실패: ${response.code()} ${response.message()}")
                         Toast.makeText(this@ScheduleActivity, "일정 로드 실패", Toast.LENGTH_SHORT).show()
                     }
                 }
 
                 override fun onFailure(call: Call<ScheduleResponse>, t: Throwable) {
                     swipeRefresh.isRefreshing = false
+                    Log.e("ScheduleActivity", "네트워크 오류", t)
                     Toast.makeText(this@ScheduleActivity, "서버 연결 오류", Toast.LENGTH_SHORT).show()
-                    Log.e("ScheduleActivity", "Error: ${t.message}")
                 }
             })
     }
 
-    // 일정 삭제 확인 팝업 (함수 밖으로 빼냄)
     private fun showDeleteDialog(item: ScheduleItem) {
         AlertDialog.Builder(this)
-            .setTitle("일정 삭제 확인")
+            .setTitle("일정 삭제")
             .setMessage("'${item.title}' 일정을 삭제하시겠습니까?")
-            .setPositiveButton("삭제") { _, _ ->
-                Toast.makeText(this, "삭제 기능은 추후 구현됩니다.", Toast.LENGTH_SHORT).show()
-            }
+            .setPositiveButton("삭제") { _, _ -> Toast.makeText(this, "삭제 기능 준비중", Toast.LENGTH_SHORT).show() }
             .setNegativeButton("취소", null)
             .show()
     }

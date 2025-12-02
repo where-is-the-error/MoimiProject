@@ -1,6 +1,4 @@
 package com.moimiApp.moimi
-import com.google.android.gms.location.LocationRequest
-
 
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -16,7 +14,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.skt.tmap.TMapData
 import com.skt.tmap.TMapPoint
 import com.skt.tmap.TMapView
@@ -25,14 +28,17 @@ import com.skt.tmap.poi.TMapPOIItem
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.util.ArrayList
-import kotlin.math.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
+
 
 class RouteActivity : BaseActivity() {
 
     private lateinit var tMapView: TMapView
 
-    // UI 변수 (lateinit으로 선언하되 initViews에서 반드시 초기화)
+    // UI 변수
     private lateinit var tvStart: TextView
     private lateinit var tvEnd: TextView
     private lateinit var tvSummary: TextView
@@ -41,16 +47,17 @@ class RouteActivity : BaseActivity() {
     private lateinit var tvTimeTaxi: TextView
     private lateinit var tvDetailDist: TextView
 
-    // [방어 코드 1] 목적지 기본값: 데이터 없으면 "신도림역"으로 고정
-    private var destName: String = "신도림역"
-    private var destTitle: String = "신도림역"
+    // [수정 1] 목적지 기본값을 null로 변경 (서울역/신도림역 강제 안내 제거)
+    private var destName: String? = null
+    private var destTitle: String? = null
 
-    // [방어 코드 2] 좌표 기본값: 0.0 대신 "서울시청(출발)" & "신도림역(도착)" 좌표 미리 입력
-    // 이렇게 하면 GPS나 API가 실패해도 지도가 0,0(바다 한가운데)으로 가서 터지는 일을 막습니다.
-    private var startLat: Double = 37.5665 // 서울 시청
+    // 출발지 좌표 (초기값: 서울시청) - GPS 수신 전 안전장치
+    private var startLat: Double = 37.5665
     private var startLon: Double = 126.9780
-    private var destLat: Double = 37.5094 // 신도림역
-    private var destLon: Double = 126.8907
+
+    // 도착지 좌표 (검색 결과로 덮어씌워짐)
+    private var destLat: Double = 0.0
+    private var destLon: Double = 0.0
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
@@ -58,23 +65,34 @@ class RouteActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // [수정 2] 올바른 레이아웃 파일 연결 확인 (activity_route_main)
         setContentView(R.layout.activity_route_main)
 
         setupDrawer()
 
-        // 1. Intent 데이터 수신 (값이 없거나 비어있으면 위에서 설정한 '신도림역' 유지)
+        // 1. Intent 데이터 수신 (MainActivity에서 넘어온 목적지 정보)
         val iName = intent.getStringExtra("destName")
         val iTitle = intent.getStringExtra("destTitle")
 
-        if (!iName.isNullOrEmpty()) destName = iName
-        if (!iTitle.isNullOrEmpty()) destTitle = iTitle
+        // 데이터가 넘어왔을 때만 변수에 할당
+        if (!iName.isNullOrEmpty()) {
+            destName = iName
+            destTitle = iTitle
+        }
 
-        // 2. 뷰 초기화 (NullPointerException 방지)
+        // 2. 뷰 초기화
         initViews()
 
         tvStart.text = "출발지: 위치 확인 중..."
-        tvEnd.text = "도착지: $destTitle"
-        tvSummary.text = "내 위치 ➔ $destTitle"
+
+        // 목적지 유무에 따라 텍스트 표시
+        if (destTitle != null) {
+            tvEnd.text = "도착지: $destTitle"
+            tvSummary.text = "내 위치 ➔ $destTitle"
+        } else {
+            tvEnd.text = "도착지: (설정 안 됨)"
+            tvSummary.text = "목적지가 설정되지 않았습니다"
+        }
 
         // 3. 지도 컨테이너 연결
         val mapContainer = findViewById<ViewGroup>(R.id.map_container)
@@ -86,8 +104,8 @@ class RouteActivity : BaseActivity() {
 
         tMapView.setOnMapReadyListener {
             tMapView.zoomLevel = 15
-            tMapView.setIconVisibility(true) // 내 위치 파란 점
-            tMapView.setSightVisible(true)   // 나침반 방향
+            tMapView.setIconVisibility(true) // 내 위치 파란 점 표시
+            tMapView.setSightVisible(true)   // 나침반 방향 표시
 
             // 지도가 준비되면 권한 체크 후 위치 추적 시작
             checkLocationAndStart()
@@ -120,9 +138,13 @@ class RouteActivity : BaseActivity() {
             Toast.makeText(this, "새로운 알림이 없습니다.", Toast.LENGTH_SHORT).show()
         }
 
-        // 경로 요약 버튼: 좌표가 이미 초기화되어 있으므로 안전하게 이동 가능
+        // 경로 요약 버튼 (목적지가 있을 때만 이동)
         tvSummary.setOnClickListener {
-            zoomToSpan(startLat, startLon, destLat, destLon)
+            if (destTitle != null && destLat != 0.0) {
+                zoomToSpan(startLat, startLon, destLat, destLon)
+            } else {
+                Toast.makeText(this, "목적지가 없습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
 
         val naviListener = { startTMapNavigation() }
@@ -131,9 +153,9 @@ class RouteActivity : BaseActivity() {
     }
 
     private fun checkLocationAndStart() {
-        // 권한 없으면 -> 기본값(서울시청 -> 신도림)으로 경로 그림 (앱 종료 방지)
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "위치 권한이 없어 기본 경로를 표시합니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "위치 권한이 없어 기본 위치를 표시합니다.", Toast.LENGTH_SHORT).show()
+            // 권한 없으면 기본 위치로 초기화 (경로는 안 그림)
             initializeRoute(null)
             return
         }
@@ -141,7 +163,6 @@ class RouteActivity : BaseActivity() {
     }
 
     private fun startLocationUpdates() {
-        // [수정 요청 반영] Builder 사용
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000)
             .setMinUpdateDistanceMeters(5f)
             .build()
@@ -155,11 +176,10 @@ class RouteActivity : BaseActivity() {
                     if (::tMapView.isInitialized) {
                         tMapView.setLocationPoint(location.longitude, location.latitude)
 
-                        // 처음 위치 잡았을 때 경로 탐색 시작
+                        // 처음 위치 잡았을 때 한 번만 경로 탐색 로직 실행
                         if (!isRouteInitialized) {
                             tvStart.text = "출발지: 내 위치"
                             initializeRoute(location)
-                            tMapView.setCenterPoint(location.longitude, location.latitude)
                         }
                     }
                 }
@@ -174,40 +194,55 @@ class RouteActivity : BaseActivity() {
     private fun initializeRoute(location: Location?) {
         isRouteInitialized = true
 
-        // [방어 코드 3] 내 위치가 null이면 기본값(서울시청) 사용 -> 앱 종료 방지
         val sLat = location?.latitude ?: 37.5665
         val sLon = location?.longitude ?: 126.9780
         val startPoint = TMapPoint(sLat, sLon)
 
-        // 목적지 검색 및 경로 그리기
-        searchDestinationAndDrawRoute(startPoint, destName)
+        // [수정 3] 목적지(destName)가 있을 때만 경로 탐색 실행
+        // 목적지가 없으면 지도 중심만 내 위치로 옮기고 종료
+        if (destName != null) {
+            searchDestinationAndDrawRoute(startPoint, destName!!)
+        } else {
+            runOnUiThread {
+                tMapView.setCenterPoint(sLon, sLat)
+                // Toast.makeText(this, "목적지가 없어 현재 위치만 표시합니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun searchDestinationAndDrawRoute(startPoint: TMapPoint, keyword: String) {
         val tmapData = TMapData()
+
+        // ⭐ [핵심 수정] findAllPOI 결과는 백그라운드 스레드에서 옴
         tmapData.findAllPOI(keyword, object : TMapData.OnFindAllPOIListener {
             override fun onFindAllPOI(poiList: ArrayList<TMapPOIItem>?) {
-                // 검색 결과가 있으면 좌표 업데이트
-                if (!poiList.isNullOrEmpty()) {
-                    val poi = poiList[0]
-                    destLat = poi.poiPoint.latitude
-                    destLon = poi.poiPoint.longitude
-                } else {
-                    // [방어 코드 4] 검색 실패 시에도 로그만 남기고, 이미 설정된 '신도림역' 좌표 사용
-                    Log.e("RouteActivity", "목적지 검색 실패: $keyword. 기본 좌표(신도림)를 사용합니다.")
+
+                // ⭐ 여기서 UI 쓰레드로 전환하지 않으면 앱이 터짐 (특히 drawPolyLine 호출 시)
+                runOnUiThread {
+                    if (!poiList.isNullOrEmpty()) {
+                        val poi = poiList[0]
+                        destLat = poi.poiPoint.latitude
+                        destLon = poi.poiPoint.longitude
+
+                        val endPoint = TMapPoint(destLat, destLon)
+
+                        // 이제 안전하게 경로를 그릴 수 있음 (변수 충돌/스레드 문제 해결)
+                        drawPolyLine(startPoint, endPoint)
+                        fetchCarRouteInfo(startPoint, endPoint)
+                        fetchWalkRouteInfo(startPoint, endPoint)
+
+                        zoomToSpan(startPoint.latitude, startPoint.longitude, destLat, destLon)
+
+                    } else {
+                        Log.e("RouteActivity", "목적지 검색 실패: $keyword")
+                        Toast.makeText(this@RouteActivity, "목적지를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    }
                 }
-
-                // 좌표가 100% 존재하므로 안전하게 경로 그리기
-                val endPoint = TMapPoint(destLat, destLon)
-
-                drawPolyLine(startPoint, endPoint)
-                fetchCarRouteInfo(startPoint, endPoint)
-                fetchWalkRouteInfo(startPoint, endPoint)
-
-                zoomToSpan(startPoint.latitude, startPoint.longitude, destLat, destLon)
             }
         })
     }
+
+    // RouteActivity.kt 내부의 drawPolyLine 함수 수정
 
     private fun drawPolyLine(start: TMapPoint, end: TMapPoint) {
         val tmapData = TMapData()
@@ -220,7 +255,11 @@ class RouteActivity : BaseActivity() {
                     polyLine?.let {
                         it.lineColor = Color.BLUE
                         it.lineWidth = 20f
-                        tMapView.addTMapPolyLine(it)
+
+                        // ⭐ [수정] UI 작업은 반드시 Main Thread에서 실행해야 함!
+                        runOnUiThread {
+                            tMapView.addTMapPolyLine(it)
+                        }
                     }
                 }
             }
@@ -228,19 +267,18 @@ class RouteActivity : BaseActivity() {
     }
 
     private fun zoomToSpan(lat1: Double, lon1: Double, lat2: Double, lon2: Double) {
-        runOnUiThread {
-            val centerLat = (lat1 + lat2) / 2
-            val centerLon = (lon1 + lon2) / 2
-            tMapView.setCenterPoint(centerLon, centerLat)
+        // 이미 위에서 runOnUiThread로 감싸져서 호출되지만, 안전을 위해 유지
+        val centerLat = (lat1 + lat2) / 2
+        val centerLon = (lon1 + lon2) / 2
+        tMapView.setCenterPoint(centerLon, centerLat)
 
-            val distance = getDistance(lat1, lon1, lat2, lon2)
-            tMapView.zoomLevel = when {
-                distance < 1000 -> 16
-                distance < 3000 -> 14
-                distance < 7000 -> 13
-                distance < 15000 -> 11
-                else -> 9
-            }
+        val distance = getDistance(lat1, lon1, lat2, lon2)
+        tMapView.zoomLevel = when {
+            distance < 1000 -> 16
+            distance < 3000 -> 14
+            distance < 7000 -> 13
+            distance < 15000 -> 11
+            else -> 9
         }
     }
 
@@ -269,10 +307,10 @@ class RouteActivity : BaseActivity() {
                     val time = (it.totalTime ?: 0) / 60
                     val dist = String.format("%.1f", (it.totalDistance ?: 0) / 1000.0)
                     val fare = it.taxiFare ?: 0
-                    runOnUiThread {
-                        tvTimeTaxi.text = "${time}분"
-                        tvDetailDist.text = "${dist}km\n택시 약 ${String.format("%,d", fare)}원"
-                    }
+
+                    // 텍스트뷰 업데이트
+                    tvTimeTaxi.text = "${time}분"
+                    tvDetailDist.text = "${dist}km\n택시 약 ${String.format("%,d", fare)}원"
                 }
             }
             override fun onFailure(call: Call<TmapRouteResponse>, t: Throwable) {
@@ -293,10 +331,8 @@ class RouteActivity : BaseActivity() {
                 val props = response.body()?.features?.firstOrNull()?.properties
                 props?.let {
                     val time = (it.totalTime ?: 0) / 60
-                    runOnUiThread {
-                        tvTimeWalk.text = "${time}분"
-                        tvTimeTransit.text = "${(time * 0.4).toInt()}분"
-                    }
+                    tvTimeWalk.text = "${time}분"
+                    tvTimeTransit.text = "${(time * 0.4).toInt()}분"
                 }
             }
             override fun onFailure(call: Call<TmapRouteResponse>, t: Throwable) {
@@ -306,7 +342,11 @@ class RouteActivity : BaseActivity() {
     }
 
     private fun startTMapNavigation() {
-        // [방어 코드 5] 좌표가 0.0일 확률이 없음 (기본값 사용)
+        if (destName == null || destLat == 0.0) {
+            Toast.makeText(this, "목적지가 설정되지 않았습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         try {
             val url = "tmap://route?goalname=$destTitle&goalx=$destLon&goaly=$destLat"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
