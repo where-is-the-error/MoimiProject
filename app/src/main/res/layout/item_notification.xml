@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/bg_input_rounded"
+    android:layout_marginBottom="12dp">
+
+    <TextView
+        android:id="@+id/tv_noti_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="알림 내용이 들어갑니다."
+        android:textSize="16sp"
+        android:textColor="#000000"
+        android:lineSpacingExtra="4dp"/>
+
+    <LinearLayout
+        android:id="@+id/layout_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp"
+        android:gravity="end"
+        android:visibility="gone">
+
+        <android.widget.Button
+            android:id="@+id/btn_decline"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="거절"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B0B0B0"
+            android:layout_marginEnd="8dp"
+            style="?android:attr/borderlessButtonStyle"/>
+
+        <android.widget.Button
+            android:id="@+id/btn_accept"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="수락"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#FF8989"
+            style="?android:attr/borderlessButtonStyle"/>
+    </LinearLayout>
+
+</LinearLayout>

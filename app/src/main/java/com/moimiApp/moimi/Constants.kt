@@ -5,9 +5,9 @@ object Constants {
     // 1. 서버 및 네트워크 설정
     // ==========================
     // ⭐ [중요] 사용 환경에 따라 이 IP만 변경하세요!
-    // - 에뮬레이터 내부 테스트: "10.0.2.2"
+    // - 에뮬레이터 내부 테스트: "10.0.2.2" /172.20.10.2
     // - 실제 기기(태블릿/폰) 테스트: "192.168.0.5" (본인 PC IP)
-    private const val SERVER_IP = "172.20.10.2"
+    private const val SERVER_IP = "10.0.2.2"
     private const val SERVER_PORT = "3000"
 
     // Retrofit 통신용 URL (끝에 / 포함)

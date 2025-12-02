@@ -1,12 +1,16 @@
 package com.moimiApp.moimi
 
+import okhttp3.MultipartBody
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -77,38 +81,38 @@ interface ChatApiService {
 }
 
 // ==========================================
-// 3. [일정] 일정 API
+// 3. [일정] 일정 API (수정됨)
 // ==========================================
 interface ScheduleApiService {
     @POST("api/schedules")
-    fun addSchedule(
-        @Header("Authorization") token: String,
-        @Body request: AddScheduleRequest
-    ): Call<ScheduleResponse>
+    fun addSchedule(@Header("Authorization") token: String, @Body request: AddScheduleRequest): Call<ScheduleResponse>
 
     @GET("api/schedules")
     fun getSchedules(
         @Header("Authorization") token: String,
-        @Query("date") date: String
+        @Query("date") date: String?
     ): Call<ScheduleResponse>
 
     @GET("api/schedules/{scheduleId}")
-    fun getSchedule(
-        @Header("Authorization") token: String,
-        @Path("scheduleId") scheduleId: String
-    ): Call<SingleScheduleResponse>
+    fun getSchedule(@Header("Authorization") token: String, @Path("scheduleId") scheduleId: String): Call<SingleScheduleResponse>
 
     @POST("api/schedules/{scheduleId}/join")
-    fun joinSchedule(
-        @Header("Authorization") token: String,
-        @Path("scheduleId") scheduleId: String
-    ): Call<JoinScheduleResponse>
+    fun joinSchedule(@Header("Authorization") token: String, @Path("scheduleId") scheduleId: String): Call<JoinScheduleResponse>
 
     @POST("api/schedules/join/code")
-    fun joinScheduleByCode(
-        @Header("Authorization") token: String,
-        @Body request: JoinByCodeRequest
-    ): Call<JoinScheduleResponse>
+    fun joinScheduleByCode(@Header("Authorization") token: String, @Body request: JoinByCodeRequest): Call<JoinScheduleResponse>
+
+    // ⭐ [신규] 일정 수정
+    @retrofit2.http.PUT("api/schedules/{scheduleId}")
+    fun updateSchedule(@Header("Authorization") token: String, @Path("scheduleId") scheduleId: String, @Body request: UpdateScheduleRequest): Call<ScheduleResponse>
+
+    // ⭐ [신규] 일정 삭제
+    @retrofit2.http.DELETE("api/schedules/{scheduleId}")
+    fun deleteSchedule(@Header("Authorization") token: String, @Path("scheduleId") scheduleId: String): Call<ScheduleResponse>
+
+    // ⭐ [신규] 멤버 강퇴
+    @retrofit2.http.DELETE("api/schedules/{scheduleId}/members/{userId}")
+    fun kickMember(@Header("Authorization") token: String, @Path("scheduleId") scheduleId: String, @Path("userId") userId: String): Call<ScheduleResponse>
 }
 
 // ==========================================
@@ -157,6 +161,30 @@ interface TmapApiService {
         @Query("count") count: Int = 1
     ): Call<TmapPoiResponse>
 }
+// ==========================================
+// ⭐ [신규] 8. 사용자(프로필) API
+// ==========================================
+interface UserApiService {
+    // 프로필 이름 수정
+    @PUT("api/users/{userId}")
+    fun updateProfile(
+        @Header("Authorization") token: String,
+        @Path("userId") userId: String,
+        @Body body: Map<String, String> // {"name": "새이름"}
+    ): Call<ScheduleResponse> // 응답 형식은 {success, message} 형태면 됨
+
+    // 프로필 이미지 업로드
+    @Multipart
+    @POST("api/users/{userId}/profile-img")
+    fun uploadProfileImage(
+        @Header("Authorization") token: String,
+        @Path("userId") userId: String,
+        @Part image: MultipartBody.Part
+    ): Call<UploadProfileResponse>
+}
+
+// 이미지 업로드 응답용 데이터 클래스
+data class UploadProfileResponse(val success: Boolean, val profileImgUrl: String?)
 
 // ==========================================
 // [Retrofit 객체 모음]
@@ -171,21 +199,13 @@ object RetrofitClient {
             .build()
     }
 
-    val instance: ApiService by lazy {
-        retrofit.create(ApiService::class.java)
-    }
+    val instance: ApiService by lazy { retrofit.create(ApiService::class.java) }
+    val chatInstance: ChatApiService by lazy { retrofit.create(ChatApiService::class.java) }
+    val scheduleInstance: ScheduleApiService by lazy { retrofit.create(ScheduleApiService::class.java) }
+    val notificationInstance: NotificationApiService by lazy { retrofit.create(NotificationApiService::class.java) }
 
-    val chatInstance: ChatApiService by lazy {
-        retrofit.create(ChatApiService::class.java)
-    }
-
-    val scheduleInstance: ScheduleApiService by lazy {
-        retrofit.create(ScheduleApiService::class.java)
-    }
-
-    val notificationInstance: NotificationApiService by lazy {
-        retrofit.create(NotificationApiService::class.java)
-    }
+    // ⭐ [추가] 사용자 API 인스턴스
+    val userInstance: UserApiService by lazy { retrofit.create(UserApiService::class.java) }
 }
 
 object NaverClient {

@@ -54,15 +54,34 @@ data class Properties(
 )
 
 // --- 4. 채팅 관련 ---
-data class ChatMessage(val content: String, val time: String, val isMe: Boolean, val senderName: String = "")
+data class ChatLog(
+    @SerializedName("content") val content: String,
+    @SerializedName("timestamp") val timestamp: String,
+    @SerializedName("senderName") val senderName: String
+)
+
+data class ChatMessage(
+    val content: String,
+    val time: String,
+    val rawDate: String,
+    val isMe: Boolean,
+    val senderName: String = ""
+)
+
 data class ChatRoom(val title: String, val lastMessage: String)
 data class ChatHistoryResponse(val success: Boolean, val chats: List<ChatLog>)
-data class ChatLog(val message: String, val createdAt: String, val sender: Sender)
-data class Sender(val name: String)
 data class SendMessageRequest(val roomId: String, val message: String)
 data class SendMessageResponse(val success: Boolean, val chat: ChatLog)
-
-// ⭐ [신규] 이메일로 초대 요청/응답
+data class CreatePrivateChatRequest(val targetEmail: String)
+data class CreatePrivateChatResponse(val success: Boolean, val message: String, val roomId: String?, val title: String?)
+data class ChatRoomItem(
+    @SerializedName("id") val id: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("lastMessage") val lastMessage: String,
+    @SerializedName("meetingInfo") val meetingInfo: String?,
+    @SerializedName("hasUnread") val hasUnread: Boolean = false
+)
+data class ChatRoomListResponse(val success: Boolean, val rooms: List<ChatRoomItem>)
 data class InviteByEmailRequest(val email: String)
 data class InviteResponse(val success: Boolean, val message: String)
 
@@ -81,7 +100,8 @@ data class AddScheduleRequest(
     val location: String,
     val type: String = "MEETING"
 )
-
+data class MemberInfo(val id: String, val name: String)
+data class UpdateScheduleRequest(val date: String?, val time: String?, val title: String?, val location: String?)
 data class ScheduleItem(
     val id: String = "",
     val time: String,
@@ -92,70 +112,37 @@ data class ScheduleItem(
     val leaderName: String = "",
     val leaderId: String = "",
     val memberNames: List<String> = emptyList(),
+    val members: List<MemberInfo> = emptyList(),
     val isLeader: Boolean = false,
     val type: String = "MEETING"
 )
-
-data class ScheduleResponse(
-    val success: Boolean,
-    val message: String? = null,
-    val schedules: List<ScheduleItem>? = null,
-    val scheduleId: String? = null,
-    val inviteCode: String? = null
-)
-
-data class SingleScheduleResponse(
-    val success: Boolean,
-    val schedule: ScheduleItem?
-)
-
-data class JoinScheduleResponse(
-    val success: Boolean,
-    val message: String,
-    val scheduleId: String? = null
-)
-
+data class ScheduleResponse(val success: Boolean, val message: String? = null, val schedules: List<ScheduleItem>? = null, val scheduleId: String? = null, val inviteCode: String? = null)
+data class SingleScheduleResponse(val success: Boolean, val schedule: ScheduleItem?)
+data class JoinScheduleResponse(val success: Boolean, val message: String, val scheduleId: String? = null)
 data class JoinByCodeRequest(val inviteCode: String)
 
 // --- 7. 모임(예약) 관련 ---
 data class CreateMeetingRequest(val title: String, val location: String, val dateTime: String, val reservationRequired: Boolean)
 data class MeetingCreationResponse(val success: Boolean, val message: String)
 
+// ⭐ [수정] 서버의 snake_case(date_time)를 camelCase(dateTime)로 매핑
 data class MeetingItem(
     val id: String,
     val title: String,
-    val dateTime: String,
+    @SerializedName("date_time") val dateTime: String, // 여기가 핵심 원인 수정!
     val location: String
-)
-// ⭐ [신규] 1:1 채팅방 생성 요청
-data class CreatePrivateChatRequest(
-    val targetEmail: String
-)
-
-// ⭐ [신규] 1:1 채팅방 생성 응답
-data class CreatePrivateChatResponse(
-    val success: Boolean,
-    val message: String,
-    val roomId: String?,
-    val title: String?
-)
-
-// ⭐ [신규] 채팅방 목록 아이템 (기존 ChatRoom 클래스 대체 또는 수정)
-data class ChatRoomItem(
-    @SerializedName("id") val id: String,
-    @SerializedName("title") val title: String,
-    @SerializedName("lastMessage") val lastMessage: String
-)
-
-data class ChatRoomListResponse(
-    val success: Boolean,
-    val rooms: List<ChatRoomItem>
 )
 data class MeetingListResponse(val success: Boolean, val meetings: List<MeetingItem>?)
 
 // --- 8. 알림 관련 ---
 data class NotificationResponse(val success: Boolean, val notifications: List<NotificationItem>)
-data class NotificationItem(val message: String)
+data class NotificationItem(
+    val _id: String? = null,
+    val message: String,
+    val type: String = "NORMAL",
+    val metadata: Map<String, String>? = null,
+    val created_at: String? = null
+)
 
 // --- 9. 날씨 관련 ---
 data class OpenWeatherResponse(
@@ -164,7 +151,6 @@ data class OpenWeatherResponse(
     @SerializedName("wind") val wind: WindInfo,
     @SerializedName("name") val cityName: String
 )
-
 data class WeatherMain(
     @SerializedName("temp") val temp: Double,
     @SerializedName("feels_like") val feelsLike: Double,
@@ -172,13 +158,11 @@ data class WeatherMain(
     @SerializedName("temp_max") val tempMax: Double,
     @SerializedName("humidity") val humidity: Int
 )
-
 data class WeatherDescription(
     @SerializedName("main") val condition: String,
     @SerializedName("description") val detail: String,
     @SerializedName("icon") val icon: String
 )
-
 data class WindInfo(
     @SerializedName("speed") val speed: Double
 )

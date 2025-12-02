@@ -13,8 +13,13 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
+
     namespace = "com.moimiApp.moimi"
     compileSdk = 36
+
+    buildFeatures {
+        viewBinding = true
+    }
 
     defaultConfig {
         applicationId = "com.moimiApp.moimi"

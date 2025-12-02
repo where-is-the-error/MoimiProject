@@ -2,6 +2,7 @@ package com.moimiApp.moimi
 
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
@@ -9,7 +10,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.gson.Gson
 import io.socket.client.Socket
 import io.socket.emitter.Emitter
 import org.json.JSONObject
@@ -19,43 +19,44 @@ import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class ChatRoomActivity : BaseActivity() {
 
     private val msgList = mutableListOf<ChatMessage>()
     private lateinit var adapter: ChatAdapter
     private lateinit var rvMessages: RecyclerView
+    private lateinit var tvFirstGreeting: TextView
 
     private var roomId: String = ""
     private var myName: String = ""
-
-    // 소켓 객체
     private lateinit var mSocket: Socket
-    private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat_room_screen)
-
         setupDrawer()
 
         roomId = intent.getStringExtra("roomId") ?: ""
         val roomTitle = intent.getStringExtra("roomTitle") ?: "채팅방"
         myName = prefsManager.getUserName() ?: ""
 
-        // 1. 소켓 초기화 및 연결
-        SocketHandler.setSocket()
-        mSocket = SocketHandler.getSocket()
-        mSocket.connect()
-
-        // 2. 방 입장 이벤트 전송
-        mSocket.emit("joinRoom", roomId)
-
-        // 3. 메시지 수신 리스너 등록
-        mSocket.on("chatMessage", onNewMessage)
+        try {
+            SocketHandler.setSocket()
+            mSocket = SocketHandler.getSocket()
+            if (!mSocket.connected()) mSocket.connect()
+            mSocket.emit("joinRoom", roomId)
+            mSocket.on("chatMessage", onNewMessage)
+        } catch (e: Exception) {
+            Log.e("ChatRoom", "소켓 연결 오류", e)
+        }
 
         val tvTitle = findViewById<TextView>(R.id.tv_chat_room_title)
         tvTitle.text = roomTitle
+
+        tvFirstGreeting = findViewById(R.id.tv_first_greeting)
+        val partnerName = roomTitle.replace("님과의 대화", "")
+        tvFirstGreeting.text = "${partnerName}님과의 첫 대화입니다\n반갑게 인사해보세요!!"
 
         val btnSend = findViewById<Button>(R.id.btn_chat_send)
         val btnAddFriend = findViewById<ImageButton>(R.id.btn_chat_add_friend)
@@ -63,7 +64,7 @@ class ChatRoomActivity : BaseActivity() {
         rvMessages = findViewById(R.id.rv_chat_room_messages)
 
         val layoutManager = LinearLayoutManager(this)
-        layoutManager.stackFromEnd = true // 키보드 올라올 때 대비
+        layoutManager.stackFromEnd = true
         rvMessages.layoutManager = layoutManager
 
         adapter = ChatAdapter(msgList)
@@ -89,45 +90,36 @@ class ChatRoomActivity : BaseActivity() {
         }
     }
 
-    // 소켓 메시지 수신 리스너
     private val onNewMessage = Emitter.Listener { args ->
         runOnUiThread {
             try {
                 val data = args[0] as JSONObject
                 val message = data.getString("message")
-                // sender가 객체인지 문자열인지 확인 필요 (서버 구현에 따라 다름)
-                // 위 서버 코드에서는 sender: { name: ... } 형태임
-                val senderObj = data.getJSONObject("sender")
-                val senderName = senderObj.getString("name")
-                val createdAt = data.getString("createdAt")
 
-                // 내가 보낸 건지 확인 (서버에서 내가 보낸 것도 소켓으로 옴)
-                // 하지만 Retrofit onSuccess에서 이미 추가했다면 중복될 수 있음.
-                // 보통은 내가 보낸건 바로 추가하고, 소켓에서는 senderId 비교해서 내꺼면 무시하거나,
-                // Retrofit에서는 추가 안하고 소켓으로만 받는 방식 사용.
-                // 여기서는 "이름"으로 단순 비교합니다.
+                val senderName = if (data.has("sender")) {
+                    val senderObj = data.getJSONObject("sender")
+                    senderObj.getString("name")
+                } else {
+                    data.optString("senderName", "알 수 없음")
+                }
 
-                if (senderName != myName) { // 내 이름이 아니면 추가 (나는 이미 Retrofit 콜백에서 추가함)
-                    val chatMsg = ChatMessage(message, formatTime(createdAt), false, senderName)
+                val createdAt = data.optString("createdAt", data.optString("timestamp"))
+
+                if (senderName != myName) {
+                    val parsedDate = parseIsoTime(createdAt)
+                    val timeStr = formatTime(parsedDate)
+                    val dateStr = formatDate(parsedDate)
+
+                    // DataModels.kt 수정으로 파라미터가 5개여야 정상입니다.
+                    val chatMsg = ChatMessage(message, timeStr, dateStr, false, senderName)
                     msgList.add(chatMsg)
                     adapter.notifyItemInserted(msgList.size - 1)
                     rvMessages.smoothScrollToPosition(msgList.size - 1)
+                    tvFirstGreeting.visibility = View.GONE
                 }
             } catch (e: Exception) {
-                Log.e("Socket", "메시지 파싱 에러", e)
+                Log.e("Socket", "메시지 수신 에러", e)
             }
-        }
-    }
-
-    // 시간 포맷 변환 (ISO 8601 -> 오전/오후 HH:mm)
-    private fun formatTime(isoTime: String): String {
-        return try {
-            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-            val outputFormat = SimpleDateFormat("a h:mm", Locale.getDefault())
-            val date = inputFormat.parse(isoTime)
-            outputFormat.format(date ?: Date())
-        } catch (e: Exception) {
-            "방금"
         }
     }
 
@@ -140,13 +132,21 @@ class ChatRoomActivity : BaseActivity() {
                         val serverChats = response.body()!!.chats
                         msgList.clear()
                         for (chat in serverChats) {
-                            // 시간 포맷 변환 적용
-                            val timeStr = formatTime(chat.createdAt)
-                            val isMe = (chat.sender.name == myName)
-                            msgList.add(ChatMessage(chat.message, timeStr, isMe, chat.sender.name))
+                            val isMe = (chat.senderName == myName)
+                            val parsedDate = parseIsoTime(chat.timestamp)
+                            val timeStr = formatTime(parsedDate)
+                            val dateStr = formatDate(parsedDate)
+
+                            msgList.add(ChatMessage(chat.content, timeStr, dateStr, isMe, chat.senderName))
                         }
                         adapter.notifyDataSetChanged()
-                        if (msgList.isNotEmpty()) rvMessages.scrollToPosition(msgList.size - 1)
+
+                        if (msgList.isNotEmpty()) {
+                            rvMessages.scrollToPosition(msgList.size - 1)
+                            tvFirstGreeting.visibility = View.GONE
+                        } else {
+                            tvFirstGreeting.visibility = View.VISIBLE
+                        }
                     }
                 }
                 override fun onFailure(call: Call<ChatHistoryResponse>, t: Throwable) {}
@@ -157,19 +157,20 @@ class ChatRoomActivity : BaseActivity() {
         val token = getAuthToken()
         val request = SendMessageRequest(roomId, message)
 
-        // 1. 서버에 저장 요청 (HTTP POST)
         RetrofitClient.chatInstance.sendMessage(token, request)
             .enqueue(object : Callback<SendMessageResponse> {
                 override fun onResponse(call: Call<SendMessageResponse>, response: Response<SendMessageResponse>) {
                     if (response.isSuccessful && response.body()?.success == true) {
-                        // 2. 성공 시 내 화면에 즉시 추가
-                        val currentTime = SimpleDateFormat("a h:mm", Locale.getDefault()).format(Date())
-                        val myMsg = ChatMessage(message, currentTime, true, myName)
+                        val newChat = response.body()!!.chat
+                        val parsedDate = parseIsoTime(newChat.timestamp)
+                        val timeStr = formatTime(parsedDate)
+                        val dateStr = formatDate(parsedDate)
+
+                        val myMsg = ChatMessage(newChat.content, timeStr, dateStr, true, myName)
                         msgList.add(myMsg)
                         adapter.notifyItemInserted(msgList.size - 1)
                         rvMessages.smoothScrollToPosition(msgList.size - 1)
-
-                        // *서버에서 socket.emit을 해주므로 상대방에겐 소켓으로 감
+                        tvFirstGreeting.visibility = View.GONE
                     }
                 }
                 override fun onFailure(call: Call<SendMessageResponse>, t: Throwable) {
@@ -178,15 +179,39 @@ class ChatRoomActivity : BaseActivity() {
             })
     }
 
-    // 기존 친구 초대 로직 유지 ...
-    private fun showInviteDialog() { /* ... (이전 코드와 동일) ... */ }
-    private fun inviteFriendByEmail(email: String) { /* ... (이전 코드와 동일) ... */ }
+    private fun showInviteDialog() {
+        // ... (친구 초대 로직 - 이전과 동일하거나 생략 가능)
+        Toast.makeText(this, "초대 기능은 준비 중입니다.", Toast.LENGTH_SHORT).show()
+    }
+
+    // 시간 변환 유틸리티
+    private fun parseIsoTime(isoTime: String): Date? {
+        return try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+            inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+            inputFormat.parse(isoTime)
+        } catch (e: Exception) {
+            Date()
+        }
+    }
+
+    private fun formatTime(date: Date?): String {
+        val outputFormat = SimpleDateFormat("a h:mm", Locale.getDefault())
+        outputFormat.timeZone = TimeZone.getTimeZone("Asia/Seoul")
+        return outputFormat.format(date ?: Date())
+    }
+
+    private fun formatDate(date: Date?): String {
+        val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        outputFormat.timeZone = TimeZone.getTimeZone("Asia/Seoul")
+        return outputFormat.format(date ?: Date())
+    }
 
     override fun onDestroy() {
         super.onDestroy()
-        // 액티비티 종료 시 소켓 연결 해제 및 방 퇴장
-        mSocket.emit("leaveRoom", roomId)
-        mSocket.disconnect()
-        mSocket.off("chatMessage", onNewMessage)
+        try {
+            mSocket.emit("leaveRoom", roomId)
+            mSocket.off("chatMessage", onNewMessage)
+        } catch (e: Exception) {}
     }
 }

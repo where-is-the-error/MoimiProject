@@ -9,7 +9,6 @@
     android:clickable="true"
     android:focusable="true">
 
-    <!-- 상단 헤더 (닫기 버튼, 프로필) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/header_container"
         android:layout_width="match_parent"
@@ -57,9 +56,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            tools:text="dongyang123"
+            android:text="계정 >"
             android:textSize="14sp"
             android:textColor="#808080"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingVertical="4dp"
+            android:paddingHorizontal="4dp"
             app:layout_constraintStart_toEndOf="@id/iv_profile_image"
             app:layout_constraintTop_toBottomOf="@id/tv_user_name"
             app:layout_constraintBottom_toBottomOf="@id/iv_profile_image"/>
@@ -73,7 +77,6 @@
         android:background="#E0E0E0"
         app:layout_constraintTop_toBottomOf="@id/header_container"/>
 
-    <!-- 메뉴 목록 -->
     <LinearLayout
         android:id="@+id/menu_container"
         android:layout_width="match_parent"

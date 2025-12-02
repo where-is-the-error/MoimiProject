@@ -5,15 +5,34 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp">
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="4dp">
+
+    <TextView
+        android:id="@+id/tv_chat_date_header"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="2025-12-03"
+        android:textSize="12sp"
+        android:textColor="#888888"
+        android:background="@drawable/bg_input_rounded"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/iv_bubble_other_profile"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:src="@mipmap/ic_launcher"
+        android:layout_marginTop="4dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toBottomOf="@id/tv_chat_date_header"/>
 
     <TextView
         android:id="@+id/tv_bubble_other_name"
@@ -23,7 +42,7 @@
         android:textSize="12sp"
         android:layout_marginStart="8dp"
         app:layout_constraintStart_toEndOf="@id/iv_bubble_other_profile"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toTopOf="@id/iv_bubble_other_profile"/>
 
     <TextView
         android:id="@+id/tv_bubble_other_content"

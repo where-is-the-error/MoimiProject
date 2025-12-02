@@ -29,38 +29,62 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val msg = messages[position]
+
+        // 날짜 구분선 표시 여부 결정
+        var showDate = false
+        if (position == 0) {
+            showDate = true
+        } else {
+            val prevMsg = messages[position - 1]
+            if (msg.rawDate != prevMsg.rawDate) {
+                showDate = true
+            }
+        }
+
         if (holder is MeViewHolder) {
-            holder.bind(msg)
+            holder.bind(msg, showDate)
         } else if (holder is OtherViewHolder) {
-            holder.bind(msg)
+            holder.bind(msg, showDate)
         }
     }
 
     override fun getItemCount() = messages.size
 
-    // [중요] 내 메시지 (item_chat_bubble_me.xml) ID 연결
     class MeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        // XML ID: tv_bubble_me_content, tv_bubble_me_time
         private val tvContent: TextView = itemView.findViewById(R.id.tv_bubble_me_content)
         private val tvTime: TextView = itemView.findViewById(R.id.tv_bubble_me_time)
+        private val tvDate: TextView = itemView.findViewById(R.id.tv_chat_date_header)
 
-        fun bind(msg: ChatMessage) {
+        fun bind(msg: ChatMessage, showDate: Boolean) {
             tvContent.text = msg.content
             tvTime.text = msg.time
+
+            if (showDate) {
+                tvDate.visibility = View.VISIBLE
+                tvDate.text = msg.rawDate
+            } else {
+                tvDate.visibility = View.GONE
+            }
         }
     }
 
-    // [중요] 상대 메시지 (item_chat_bubble_other.xml) ID 연결
     class OtherViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        // XML ID: tv_bubble_other_name, tv_bubble_other_content, tv_bubble_other_time
         private val tvName: TextView = itemView.findViewById(R.id.tv_bubble_other_name)
         private val tvContent: TextView = itemView.findViewById(R.id.tv_bubble_other_content)
         private val tvTime: TextView = itemView.findViewById(R.id.tv_bubble_other_time)
+        private val tvDate: TextView = itemView.findViewById(R.id.tv_chat_date_header)
 
-        fun bind(msg: ChatMessage) {
+        fun bind(msg: ChatMessage, showDate: Boolean) {
             tvName.text = msg.senderName
             tvContent.text = msg.content
             tvTime.text = msg.time
+
+            if (showDate) {
+                tvDate.visibility = View.VISIBLE
+                tvDate.text = msg.rawDate
+            } else {
+                tvDate.visibility = View.GONE
+            }
         }
     }
 }

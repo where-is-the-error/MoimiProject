@@ -7,6 +7,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,15 +22,20 @@ class SearchLocationActivity : BaseActivity() {
     private lateinit var rvList: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var adapter: LocationAdapter
+    private var tMapView: TMapView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search_location)
 
-        // ⭐ [수정] 최신 SDK 인증 방식: TMapView 인스턴스 생성 후 키 설정
-        // 화면에 보여주지 않더라도 이 코드가 있어야 TMapData 검색이 작동합니다.
-        val tMapView = TMapView(this)
-        tMapView.setSKTMapApiKey(tMapApiKey)
+        try {
+            tMapView = TMapView(this)
+            tMapView?.setSKTMapApiKey(tMapApiKey)
+            val container = LinearLayout(this)
+            container.visibility = View.GONE
+            container.addView(tMapView)
+            (window.decorView as? android.view.ViewGroup)?.addView(container)
+        } catch (e: Exception) { Log.e("Search", "Init Error", e) }
 
         etSearch = findViewById(R.id.et_search_keyword)
         rvList = findViewById(R.id.rv_search_results)
@@ -41,6 +47,9 @@ class SearchLocationActivity : BaseActivity() {
         adapter = LocationAdapter(emptyList()) { selectedPoi ->
             val intent = Intent().apply {
                 putExtra("locationName", selectedPoi.name)
+                // ⭐ [수정] 좌표 정보 추가 반환
+                putExtra("lat", selectedPoi.frontLat?.toDoubleOrNull() ?: 0.0)
+                putExtra("lon", selectedPoi.frontLon?.toDoubleOrNull() ?: 0.0)
             }
             setResult(RESULT_OK, intent)
             finish()
@@ -48,14 +57,11 @@ class SearchLocationActivity : BaseActivity() {
         rvList.adapter = adapter
 
         btnSearch.setOnClickListener { searchLocation() }
-
         etSearch.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 searchLocation()
                 true
-            } else {
-                false
-            }
+            } else false
         }
     }
 
@@ -67,19 +73,12 @@ class SearchLocationActivity : BaseActivity() {
         }
 
         progressBar.visibility = View.VISIBLE
-        Log.d("TMAP_SEARCH", "검색 시작: $keyword")
-
         val tmapData = TMapData()
-
-        // ⭐ [수정] 최신 SDK 리스너 이름: OnFindAllPOIListener
         tmapData.findAllPOI(keyword, object : TMapData.OnFindAllPOIListener {
             override fun onFindAllPOI(poiList: ArrayList<TMapPOIItem>?) {
                 runOnUiThread {
                     progressBar.visibility = View.GONE
-
                     if (!poiList.isNullOrEmpty()) {
-                        Log.d("TMAP_SEARCH", "검색 성공: ${poiList.size}개 발견")
-
                         val mappedList = poiList.map { item ->
                             Poi(
                                 name = item.poiName,
@@ -89,12 +88,16 @@ class SearchLocationActivity : BaseActivity() {
                         }
                         adapter.updateList(mappedList)
                     } else {
-                        Log.d("TMAP_SEARCH", "검색 결과 없음 (0개)")
                         Toast.makeText(this@SearchLocationActivity, "검색 결과가 없습니다.", Toast.LENGTH_SHORT).show()
                         adapter.updateList(emptyList())
                     }
                 }
             }
         })
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        tMapView = null
     }
 }

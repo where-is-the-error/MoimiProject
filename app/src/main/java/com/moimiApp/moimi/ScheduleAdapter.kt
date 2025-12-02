@@ -3,19 +3,19 @@ package com.moimiApp.moimi
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class ScheduleAdapter(
     private val scheduleList: List<ScheduleItem>,
     private val onItemClick: (ScheduleItem) -> Unit,
-    private val onItemLongClick: (ScheduleItem) -> Unit
+    private val onSettingsClick: (ScheduleItem) -> Unit // ⭐ 설정 클릭 리스너 추가
 ) : RecyclerView.Adapter<ScheduleAdapter.ScheduleViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ScheduleViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_schedule, parent, false)
-        return ScheduleViewHolder(view, onItemClick, onItemLongClick)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_schedule, parent, false)
+        return ScheduleViewHolder(view, onItemClick, onSettingsClick)
     }
 
     override fun onBindViewHolder(holder: ScheduleViewHolder, position: Int) {
@@ -27,43 +27,30 @@ class ScheduleAdapter(
     class ScheduleViewHolder(
         itemView: View,
         private val clickListener: (ScheduleItem) -> Unit,
-        private val longClickListener: (ScheduleItem) -> Unit
+        private val settingsClickListener: (ScheduleItem) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
 
-        val tvTime: TextView = itemView.findViewById(R.id.tv_schedule_time)
-        val tvTitle: TextView = itemView.findViewById(R.id.tv_schedule_title)
-        val tvLocation: TextView = itemView.findViewById(R.id.tv_schedule_location)
-
-        private lateinit var currentItem: ScheduleItem
-
-        init {
-            itemView.setOnClickListener { clickListener(currentItem) }
-            itemView.setOnLongClickListener {
-                longClickListener(currentItem)
-                true
-            }
-        }
+        private val tvTime: TextView = itemView.findViewById(R.id.tv_schedule_time)
+        private val tvTitle: TextView = itemView.findViewById(R.id.tv_schedule_title)
+        private val tvLocation: TextView = itemView.findViewById(R.id.tv_schedule_location)
+        private val btnSettings: ImageView = itemView.findViewById(R.id.btn_schedule_settings)
 
         fun bind(item: ScheduleItem) {
-            this.currentItem = item
             tvTime.text = item.time
+            tvTitle.text = if (item.isLeader) "👑 ${item.title}" else item.title
 
-            // [수정] 제목 옆에 모임장 표시
-            if (item.isLeader) {
-                tvTitle.text = "👑 ${item.title} (내 모임)"
-            } else if (item.leaderName.isNotEmpty()) {
-                tvTitle.text = "${item.title} (👑${item.leaderName})"
-            } else {
-                tvTitle.text = item.title
-            }
-
-            // [수정] 장소 아래에 참여자 명단 표시
-            val members = if (item.memberNames.isNotEmpty()) {
-                "\n참여자: " + item.memberNames.joinToString(", ")
-            } else {
-                ""
-            }
+            val members = if (item.memberNames.isNotEmpty()) "\n참여자: ${item.memberNames.joinToString(", ")}" else ""
             tvLocation.text = "${item.location}$members"
+
+            // ⭐ 모임장일 때만 설정 버튼 표시
+            if (item.isLeader) {
+                btnSettings.visibility = View.VISIBLE
+                btnSettings.setOnClickListener { settingsClickListener(item) }
+            } else {
+                btnSettings.visibility = View.GONE
+            }
+
+            itemView.setOnClickListener { clickListener(item) }
         }
     }
 }

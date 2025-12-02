@@ -22,15 +22,16 @@ class LocationService : Service() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
+    private lateinit var prefsManager: SharedPreferencesManager
 
     override fun onCreate() {
         super.onCreate()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        prefsManager = SharedPreferencesManager(this) // 매니저 초기화
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
-                    Log.d("LocationService", "내 위치: ${location.latitude}, ${location.longitude}")
                     sendLocationToServer(location.latitude, location.longitude)
                 }
             }
@@ -39,17 +40,19 @@ class LocationService : Service() {
 
     @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // [추가] 위치 공유 상태 ON
+        prefsManager.setLocationSharing(true)
+
         createNotificationChannel()
         val notification = NotificationCompat.Builder(this, "LocationServiceChannel")
-            .setContentTitle("모이미 위치 서비스 실행 중")
-            .setContentText("실시간으로 위치를 공유하고 있습니다.")
+            .setContentTitle("모이미 위치 서비스")
+            .setContentText("실시간 위치를 공유하고 있습니다.")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
         startForeground(1234, notification)
 
-        // 구글의 LocationRequest.Builder 사용
         val locationRequest = com.google.android.gms.location.LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
             .setMinUpdateDistanceMeters(10f)
             .build()
@@ -64,21 +67,15 @@ class LocationService : Service() {
     }
 
     private fun sendLocationToServer(lat: Double, lon: Double) {
-        val prefs = getSharedPreferences("moimi_app_prefs", MODE_PRIVATE)
-        val token = prefs.getString("auth_token", null)
+        val token = prefsManager.getToken()
 
         if (token != null) {
             val bearerToken = "Bearer $token"
-            // [수정] 패키지명을 명시하여 DataModels.kt의 LocationRequest 사용
             val request = com.moimiApp.moimi.LocationRequest(lat, lon)
 
             RetrofitClient.instance.updateLocation(bearerToken, request).enqueue(object : Callback<LocationResponse> {
                 override fun onResponse(call: Call<LocationResponse>, response: Response<LocationResponse>) {
-                    if (response.isSuccessful) {
-                        Log.d("LocationService", "서버 전송 성공")
-                    } else {
-                        Log.e("LocationService", "서버 전송 실패: ${response.code()}")
-                    }
+                    // 성공 로그
                 }
                 override fun onFailure(call: Call<LocationResponse>, t: Throwable) {
                     Log.e("LocationService", "통신 에러: ${t.message}")
@@ -89,6 +86,8 @@ class LocationService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // [추가] 위치 공유 상태 OFF
+        prefsManager.setLocationSharing(false)
         fusedLocationClient.removeLocationUpdates(locationCallback)
     }
 

@@ -2,4 +2,12 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="brand_main">#FF8989</color>
+    <color name="brand_main_pressed">#F08080</color>
+
+    <color name="gray_text">#888888</color>
+    <color name="gray_background">#F5F5F5</color>
+    <color name="input_stroke">#DDDDDD</color>
+    <color name="divider">#EEEEEE</color>
 </resources>

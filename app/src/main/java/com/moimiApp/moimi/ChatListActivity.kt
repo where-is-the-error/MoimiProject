@@ -3,19 +3,21 @@ package com.moimiApp.moimi
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
+import android.util.Log
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
 class ChatListActivity : BaseActivity() {
 
-    // 기존 ChatRoom 대신 서버 데이터 모델인 ChatRoomItem 사용
     private val chatRoomList = mutableListOf<ChatRoomItem>()
     private lateinit var adapter: ChatListAdapter
 
@@ -29,19 +31,15 @@ class ChatListActivity : BaseActivity() {
 
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // 어댑터 설정 (기존 ChatListAdapter를 ChatRoomItem을 받도록 수정해야 할 수도 있음)
-        // 여기서는 ChatListAdapter가 ChatRoom(데이터클래스)을 받는다고 가정하고 변환해서 넣거나,
-        // ChatListAdapter 자체를 ChatRoomItem을 받도록 수정하는 것이 좋습니다.
-        // 편의상 ChatListAdapter 코드를 아래 6번 항목에서 ChatRoomItem으로 수정해 드립니다.
         adapter = ChatListAdapter(chatRoomList) { chatRoom ->
             val intent = Intent(this, ChatRoomActivity::class.java)
-            intent.putExtra("roomId", chatRoom.id) // Room ID 전달
+            intent.putExtra("roomId", chatRoom.id)
             intent.putExtra("roomTitle", chatRoom.title)
             startActivity(intent)
         }
         recyclerView.adapter = adapter
 
-        // ⭐ [신규] 채팅방 추가 버튼 클릭
+        // 채팅방 추가 버튼 클릭
         btnAddChat.setOnClickListener {
             showCreateChatDialog()
         }
@@ -52,10 +50,9 @@ class ChatListActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        fetchChatRooms() // 목록 갱신
+        fetchChatRooms()
     }
 
-    // ⭐ [신규] 이메일 입력 다이얼로그
     private fun showCreateChatDialog() {
         val input = EditText(this)
         input.hint = "친구 이메일 입력"
@@ -65,7 +62,8 @@ class ChatListActivity : BaseActivity() {
             .setTitle("새로운 대화 시작")
             .setMessage("대화할 상대방의 이메일을 입력해주세요.")
             .setView(input)
-            .setPositiveButton("확인") { _, _ ->
+            // ⭐ [수정] 버튼 텍스트 변경: "확인" -> "요청"
+            .setPositiveButton("요청") { _, _ ->
                 val email = input.text.toString().trim()
                 if (email.isNotEmpty()) {
                     createPrivateChat(email)
@@ -75,7 +73,7 @@ class ChatListActivity : BaseActivity() {
             .show()
     }
 
-    // ⭐ [신규] 채팅방 생성 API 호출
+    // ⭐ [수정] 에러 메시지를 상세하게 파싱하여 토스트로 출력
     private fun createPrivateChat(targetEmail: String) {
         val token = getAuthToken()
         val request = CreatePrivateChatRequest(targetEmail)
@@ -87,13 +85,21 @@ class ChatListActivity : BaseActivity() {
                         val body = response.body()!!
                         Toast.makeText(this@ChatListActivity, body.message, Toast.LENGTH_SHORT).show()
 
-                        // 생성된 방으로 바로 이동
                         val intent = Intent(this@ChatListActivity, ChatRoomActivity::class.java)
                         intent.putExtra("roomId", body.roomId)
                         intent.putExtra("roomTitle", body.title)
                         startActivity(intent)
                     } else {
-                        Toast.makeText(this@ChatListActivity, response.body()?.message ?: "생성 실패", Toast.LENGTH_SHORT).show()
+                        // 실패 시 서버가 보낸 진짜 이유(message)를 추출
+                        val errorMsg = try {
+                            val errorBody = response.errorBody()?.string()
+                            val json = Gson().fromJson(errorBody, JsonObject::class.java)
+                            json.get("message").asString
+                        } catch (e: Exception) {
+                            "생성 실패 (코드: ${response.code()})"
+                        }
+                        Toast.makeText(this@ChatListActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                        Log.e("ChatList", "채팅방 생성 실패: $errorMsg")
                     }
                 }
                 override fun onFailure(call: Call<CreatePrivateChatResponse>, t: Throwable) {
@@ -102,7 +108,6 @@ class ChatListActivity : BaseActivity() {
             })
     }
 
-    // ⭐ [신규] 채팅방 목록 불러오기
     private fun fetchChatRooms() {
         val token = getAuthToken()
         RetrofitClient.chatInstance.getMyChatRooms(token)

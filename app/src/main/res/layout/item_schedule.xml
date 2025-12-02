@@ -29,8 +29,9 @@
         android:textColor="#000000"
         android:textStyle="bold"
         android:layout_marginStart="16dp"
+        android:layout_marginEnd="8dp"
         app:layout_constraintStart_toEndOf="@id/tv_schedule_time"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btn_schedule_settings"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
@@ -42,7 +43,20 @@
         android:textColor="#808080"
         android:layout_marginTop="4dp"
         app:layout_constraintStart_toStartOf="@id/tv_schedule_title"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btn_schedule_settings"
         app:layout_constraintTop_toBottomOf="@id/tv_schedule_title" />
+
+    <ImageView
+        android:id="@+id/btn_schedule_settings"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@android:drawable/ic_menu_manage"
+        app:tint="#888888"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
