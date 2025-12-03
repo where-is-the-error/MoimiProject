@@ -17,10 +17,14 @@ class SignUpActivity : AppCompatActivity() {
         setContentView(R.layout.activity_sign_up)
 
         val btnBack = findViewById<ImageView>(R.id.btn_back) // ✅ 뒤로가기 버튼
+
+        // 입력 필드 연결
         val etName = findViewById<EditText>(R.id.etName)
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
         val etNum = findViewById<EditText>(R.id.etNum)
+        val etBirth = findViewById<EditText>(R.id.etYMD) // ✅ [추가] 누락되었던 생년월일 ID 매칭
+
         val btnSignUp = findViewById<Button>(R.id.btnSignup)
 
         // 뒤로가기 기능 적용
@@ -33,12 +37,16 @@ class SignUpActivity : AppCompatActivity() {
             val email = etEmail.text.toString().trim()
             val password = etPassword.text.toString().trim()
             val phone = etNum.text.toString().trim()
+            val birth = etBirth.text.toString().trim() // 값 가져오기
 
-            if (name.isEmpty() || email.isEmpty() || password.isEmpty() || phone.isEmpty()) {
+            // 유효성 검사 (생년월일 포함)
+            if (name.isEmpty() || email.isEmpty() || password.isEmpty() || phone.isEmpty() || birth.isEmpty()) {
                 Toast.makeText(this, "모든 정보를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
+            // 현재 서버 API(RegisterRequest)에는 birth 필드가 없으므로 전송에는 포함하지 않음
+            // 추후 서버 API가 업데이트되면 여기에 birth 필드를 추가하세요.
             val requestData = RegisterRequest(email, password, name, phone)
 
             RetrofitClient.instance.register(requestData).enqueue(object : Callback<RegisterResponse> {

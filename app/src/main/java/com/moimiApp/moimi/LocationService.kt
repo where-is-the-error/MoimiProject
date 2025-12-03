@@ -23,7 +23,6 @@ class LocationService : Service() {
     private lateinit var locationCallback: LocationCallback
     private lateinit var prefsManager: SharedPreferencesManager
 
-    // 현재 공유 중인 방 ID
     private var meetingId: String = ""
 
     override fun onCreate() {
@@ -34,7 +33,6 @@ class LocationService : Service() {
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
-                    // 소켓으로 위치 전송
                     sendLocationViaSocket(location.latitude, location.longitude)
                 }
             }
@@ -43,13 +41,9 @@ class LocationService : Service() {
 
     @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Activity에서 전달받은 방 ID 저장
         meetingId = intent?.getStringExtra("meetingId") ?: ""
-
-        // 공유 상태 저장
         prefsManager.setLocationSharing(true)
 
-        // 알림바 생성 (포그라운드 서비스 필수)
         createNotificationChannel()
         val notification = NotificationCompat.Builder(this, "LocationServiceChannel")
             .setContentTitle("위치 공유 중")
@@ -60,8 +54,8 @@ class LocationService : Service() {
 
         startForeground(1234, notification)
 
-        // 위치 업데이트 요청 (5초마다)
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+        // ✅ [확인] 5초마다, 10미터 이상 이동 시 업데이트
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000)
             .setMinUpdateDistanceMeters(10f)
             .build()
 
@@ -75,7 +69,6 @@ class LocationService : Service() {
     }
 
     private fun sendLocationViaSocket(lat: Double, lon: Double) {
-        // 방 ID가 있고 소켓이 연결되어 있을 때만 전송
         if (meetingId.isNotEmpty() && SocketHandler.getSocket().connected()) {
             try {
                 val json = JSONObject()
@@ -83,7 +76,6 @@ class LocationService : Service() {
                 json.put("latitude", lat)
                 json.put("longitude", lon)
                 json.put("userId", prefsManager.getUserId())
-                // 이름도 같이 보내주면 지도에 표시하기 좋음
                 json.put("userName", prefsManager.getUserName() ?: "익명")
 
                 SocketHandler.getSocket().emit("updateLocation", json)

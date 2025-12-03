@@ -11,8 +11,11 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -26,12 +29,12 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
-import com.skt.tmap.TMapData //
-import com.skt.tmap.TMapPoint //
-import com.skt.tmap.TMapView //
-import com.skt.tmap.overlay.TMapMarkerItem //
-import com.skt.tmap.overlay.TMapPolyLine //
-import com.skt.tmap.poi.TMapPOIItem //
+import com.skt.tmap.TMapData
+import com.skt.tmap.TMapPoint
+import com.skt.tmap.TMapView
+import com.skt.tmap.overlay.TMapMarkerItem
+import com.skt.tmap.overlay.TMapPolyLine
+import com.skt.tmap.poi.TMapPOIItem
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -43,10 +46,8 @@ class RouteActivity : BaseActivity() {
     private var locationManager: LocationManager? = null
     private var locationListener: LocationListener? = null
 
-    // ⭐ [추가] TMapData를 멤버 변수로 유지하여 비동기 작업 중 GC 방지
     private val tmapData by lazy { TMapData() }
 
-    // UI 변수
     private lateinit var tvStart: TextView
     private lateinit var tvEnd: TextView
     private lateinit var tvTotalInfo: TextView
@@ -58,13 +59,11 @@ class RouteActivity : BaseActivity() {
     private lateinit var rvRouteSteps: RecyclerView
     private lateinit var cardMap: View
 
-    // 버튼 관련 변수
     private lateinit var btnNavi: MaterialButton
     private lateinit var layoutNaviControl: LinearLayout
     private lateinit var btnStopNavi: MaterialButton
     private lateinit var btnGoMain: MaterialButton
 
-    // 좌표 및 정보
     private var startLat: Double = 37.5665
     private var startLon: Double = 126.9780
     private var startName: String = "내 위치"
@@ -72,15 +71,26 @@ class RouteActivity : BaseActivity() {
     private var destLat: Double = 0.0
     private var destLon: Double = 0.0
     private var destName: String = "도착지 설정 필요"
-
     private var destTitle: String? = null
 
     private var currentMode = "TAXI"
     private var isSelectingStart = false
-    private var isTrackingMode = false
+    private var isTrackingMode = false // 현재 안내 중인지 상태
 
-    // ⭐ [유지] 마커용 비트맵 변수 (메모리 누수 방지)
     private var locationMarkerBitmap: Bitmap? = null
+
+    private val autoTrackingHandler = Handler(Looper.getMainLooper())
+    private val autoTrackingRunnable = Runnable {
+        if (btnNavi.visibility == View.GONE) { // 안내 중일 때만
+            Log.d("RouteActivity", "⏰ 5초 타이머: 시점 자동 복귀")
+            isTrackingMode = true
+            if (startLat != 0.0 && startLon != 0.0) {
+                tMapView?.setCenterPoint(startLon, startLat, true)
+                tMapView?.zoomLevel = 18
+                Toast.makeText(this@RouteActivity, "내 위치로 시점이 복귀됩니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     private val searchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -110,7 +120,6 @@ class RouteActivity : BaseActivity() {
         setContentView(R.layout.activity_route_main)
         setupDrawer()
 
-        // ⭐ [유지] 비트맵 1회 로딩
         try {
             locationMarkerBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_location)
         } catch (e: Exception) {
@@ -129,19 +138,14 @@ class RouteActivity : BaseActivity() {
         setupListeners()
 
         val mapContainer = findViewById<FrameLayout>(R.id.map_container)
-        if (mapContainer != null) {
-            mapContainer.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    if (mapContainer.width > 0 && mapContainer.height > 0) {
-                        mapContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                        initTMapActual(mapContainer)
-                    }
+        mapContainer.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                if (mapContainer.width > 0 && mapContainer.height > 0) {
+                    mapContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    initTMapActual(mapContainer)
                 }
-            })
-        } else {
-            Log.e("RouteActivity", "map_container를 찾을 수 없습니다.")
-            Toast.makeText(this, "지도 로딩 오류", Toast.LENGTH_SHORT).show()
-        }
+            }
+        })
     }
 
     private fun initViews() {
@@ -200,9 +204,11 @@ class RouteActivity : BaseActivity() {
             stopNavigationMode()
         }
 
+        // ✅ [로그 추가] 메인으로 버튼 클릭 시
         btnGoMain.setOnClickListener {
+            Log.e("RouteActivity", "🔙 메인으로 돌아갑니다. isTracking=$isTrackingMode")
             val intent = Intent()
-            intent.putExtra("isTracking", true)
+            intent.putExtra("isTracking", isTrackingMode)
             intent.putExtra("destLat", destLat)
             intent.putExtra("destLon", destLon)
             setResult(Activity.RESULT_OK, intent)
@@ -214,26 +220,22 @@ class RouteActivity : BaseActivity() {
         isTrackingMode = true
         btnNavi.visibility = View.GONE
         layoutNaviControl.visibility = View.VISIBLE
+        Toast.makeText(this, "경로 안내를 시작합니다.", Toast.LENGTH_SHORT).show()
 
-        Toast.makeText(this, "내 위치를 따라 지도가 이동합니다.", Toast.LENGTH_SHORT).show()
-
-        tMapView?.zoomLevel = 17
-        tMapView?.setCenterPoint(startLon, startLat)
+        tMapView?.zoomLevel = 18
+        tMapView?.setCenterPoint(startLon, startLat, true)
     }
 
     private fun stopNavigationMode() {
         isTrackingMode = false
         btnNavi.visibility = View.VISIBLE
         layoutNaviControl.visibility = View.GONE
-
         btnNavi.text = "안내 시작 (따라가기)"
         try {
             btnNavi.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FF8989"))
-        } catch (e: Exception) {
-            Log.e("RouteActivity", "Color parse error", e)
-        }
-
+        } catch (e: Exception) {}
         Toast.makeText(this, "안내를 종료합니다.", Toast.LENGTH_SHORT).show()
+
         refreshRoute()
     }
 
@@ -244,7 +246,6 @@ class RouteActivity : BaseActivity() {
 
     private fun changeMode(mode: String) {
         currentMode = mode
-
         val inactiveBg = R.drawable.bg_input_rounded
         val activeBg = R.drawable.bg_button_red
         val inactiveColor = ContextCompat.getColor(this, R.color.black)
@@ -260,16 +261,11 @@ class RouteActivity : BaseActivity() {
         btnWalk.setTextColor(if (mode == "WALK") activeColor else inactiveColor)
 
         stopNavigationMode()
-        // 모드 변경 시 바로 경로 다시 그리기
         refreshRoute()
     }
 
     private fun refreshRoute() {
-        if (destLat == 0.0 || destLon == 0.0) {
-            Log.w("RouteActivity", "도착지 좌표가 유효하지 않아 경로를 그리지 않습니다.")
-            return
-        }
-
+        if (destLat == 0.0 || destLon == 0.0) return
         val start = TMapPoint(startLat, startLon)
         val end = TMapPoint(destLat, destLon)
 
@@ -283,7 +279,6 @@ class RouteActivity : BaseActivity() {
             "WALK" -> {
                 cardMap.visibility = View.VISIBLE
                 rvRouteSteps.visibility = View.GONE
-                // 도보는 PEDESTRIAN_PATH 사용
                 drawPolyLine(start, end, TMapData.TMapPathType.PEDESTRIAN_PATH)
                 fetchWalkInfo(start, end)
             }
@@ -291,102 +286,13 @@ class RouteActivity : BaseActivity() {
                 cardMap.visibility = View.VISIBLE
                 rvRouteSteps.visibility = View.VISIBLE
                 tMapView?.removeAllTMapPolyLine()
-                showTransitRoute()
             }
         }
     }
 
-    private fun initTMapActual(container: FrameLayout) {
-        try {
-            container.removeAllViews()
-            tMapView = TMapView(this)
-            tMapView?.setSKTMapApiKey(tMapApiKey)
-            val params = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
-            container.addView(tMapView, params)
-
-            tMapView?.setOnMapReadyListener {
-                tMapView?.zoomLevel = 15
-                tMapView?.setCenterPoint(startLon, startLat)
-
-                startTrackingMyLocation()
-
-                val intentDest = intent.getStringExtra("destName")
-                if (!intentDest.isNullOrEmpty() && destLat == 0.0) {
-                    searchDestinationByName(intentDest)
-                }
-            }
-        } catch (e: Exception) { Log.e("RouteActivity", "TMap Error", e) }
-    }
-
-    private fun startTrackingMyLocation() {
-        if (locationManager == null) locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-        if (locationListener == null) {
-            locationListener = object : LocationListener {
-                override fun onLocationChanged(location: Location) {
-                    startLat = location.latitude
-                    startLon = location.longitude
-
-                    runOnUiThread {
-                        if (tMapView != null) {
-                            val marker = TMapMarkerItem().apply {
-                                id = "my_location_route"
-                                setTMapPoint(TMapPoint(startLat, startLon))
-                                // ⭐ [유지] 비트맵 재사용
-                                if (locationMarkerBitmap != null) {
-                                    icon = locationMarkerBitmap
-                                }
-                                setPosition(0.5f, 1.0f)
-                            }
-                            tMapView?.removeTMapMarkerItem("my_location_route")
-                            tMapView?.addTMapMarkerItem(marker)
-
-                            if (isTrackingMode) {
-                                tMapView?.setCenterPoint(startLon, startLat)
-                                tMapView?.zoomLevel = 18
-                            }
-                        }
-                    }
-                }
-                override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
-                override fun onProviderEnabled(p: String) {}
-                override fun onProviderDisabled(p: String) {}
-            }
-        }
-
-        try {
-            locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2f, locationListener!!)
-            locationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000L, 2f, locationListener!!)
-        } catch (e: SecurityException) { }
-    }
-
-    private fun searchDestinationByName(keyword: String) {
-        val tmapData = TMapData()
-        tmapData.findAllPOI(keyword, object : TMapData.OnFindAllPOIListener {
-            override fun onFindAllPOI(poiList: ArrayList<TMapPOIItem>?) {
-                runOnUiThread {
-                    if (!poiList.isNullOrEmpty()) {
-                        val poi = poiList[0]
-                        destLat = poi.poiPoint.latitude
-                        destLon = poi.poiPoint.longitude
-
-                        if (destName.contains("설정 필요")) {
-                            destName = poi.poiName
-                            tvEnd.text = "도착: $destName"
-                        }
-                        changeMode("TAXI")
-                    }
-                }
-            }
-        })
-    }
-
-    // ⭐ [핵심 수정] 경로 그리기 함수 안전장치 강화
     private fun drawPolyLine(start: TMapPoint, end: TMapPoint, type: TMapData.TMapPathType) {
-        // UI 스레드에서 SDK 네트워크 작업을 호출하면 터질 수 있으므로 별도 스레드 실행
         Thread {
             try {
-                // tmapData 멤버 변수 사용
                 tmapData.findPathDataWithType(type, start, end, object : TMapData.OnFindPathDataWithTypeListener {
                     override fun onFindPathDataWithType(polyLine: TMapPolyLine?) {
                         polyLine?.let {
@@ -394,14 +300,12 @@ class RouteActivity : BaseActivity() {
                                 Color.parseColor("#4285F4")
                             else
                                 Color.parseColor("#34A853")
-
                             it.lineWidth = 14f
 
                             runOnUiThread {
                                 try {
                                     tMapView?.removeAllTMapPolyLine()
                                     tMapView?.addTMapPolyLine(it)
-
                                     if (!isTrackingMode) {
                                         zoomToSpan(start.latitude, start.longitude, end.latitude, end.longitude)
                                     }
@@ -412,13 +316,7 @@ class RouteActivity : BaseActivity() {
                         }
                     }
                 })
-            } catch (e: Exception) {
-                // SDK 내부 오류 발생 시 앱 종료 방지
-                Log.e("RouteActivity", "FindPath SDK Error", e)
-                runOnUiThread {
-                    // Toast.makeText(this, "경로를 표시할 수 없습니다.", Toast.LENGTH_SHORT).show()
-                }
-            }
+            } catch (e: Exception) { Log.e("RouteActivity", "FindPath SDK Error", e) }
         }.start()
     }
 
@@ -466,18 +364,97 @@ class RouteActivity : BaseActivity() {
         } catch (e: Exception) { Log.e("RouteActivity", "Zoom Error", e) }
     }
 
-    private fun showTransitRoute() {
-        tvTotalInfo.text = "약 35분  |  1,400원"
-        val steps = listOf(
-            RouteStep("출발", startName, R.drawable.ic_location),
-            RouteStep("도보", "3분 걷기 (200m)", R.drawable.ic_launcher_foreground),
-            RouteStep("버스", "6637번 탑승 (신도림역 방면)", R.drawable.ic_launcher_foreground),
-            RouteStep("하차", "신도림역 2번 출구", R.drawable.ic_launcher_foreground),
-            RouteStep("도보", "5분 걷기 (300m)", R.drawable.ic_launcher_foreground),
-            RouteStep("도착", destName, R.drawable.ic_location)
-        )
-        rvRouteSteps.layoutManager = LinearLayoutManager(this)
-        rvRouteSteps.adapter = RouteStepAdapter(steps)
+    private fun initTMapActual(container: FrameLayout) {
+        try {
+            container.removeAllViews()
+            tMapView = TMapView(this)
+            tMapView?.setSKTMapApiKey(tMapApiKey)
+            val params = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+            container.addView(tMapView, params)
+
+            tMapView?.setOnTouchListener { v, event ->
+                if (btnNavi.visibility == View.GONE) {
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                            isTrackingMode = false
+                            autoTrackingHandler.removeCallbacks(autoTrackingRunnable)
+                            v.parent.requestDisallowInterceptTouchEvent(true)
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            v.parent.requestDisallowInterceptTouchEvent(false)
+                            autoTrackingHandler.removeCallbacks(autoTrackingRunnable)
+                            autoTrackingHandler.postDelayed(autoTrackingRunnable, 5000L)
+                        }
+                    }
+                }
+                false
+            }
+
+            tMapView?.setOnMapReadyListener {
+                tMapView?.zoomLevel = 15
+                tMapView?.setCenterPoint(startLon, startLat)
+                startTrackingMyLocation()
+                val intentDest = intent.getStringExtra("destName")
+                if (!intentDest.isNullOrEmpty() && destLat == 0.0) {
+                    searchDestinationByName(intentDest)
+                }
+            }
+        } catch (e: Exception) { Log.e("RouteActivity", "TMap Error", e) }
+    }
+
+    private fun startTrackingMyLocation() {
+        if (locationManager == null) locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (locationListener == null) {
+            locationListener = object : LocationListener {
+                override fun onLocationChanged(location: Location) {
+                    startLat = location.latitude
+                    startLon = location.longitude
+                    runOnUiThread {
+                        if (tMapView != null) {
+                            val marker = TMapMarkerItem().apply {
+                                id = "my_location_route"
+                                setTMapPoint(TMapPoint(startLat, startLon))
+                                if (locationMarkerBitmap != null) icon = locationMarkerBitmap
+                                setPosition(0.5f, 1.0f)
+                            }
+                            tMapView?.removeTMapMarkerItem("my_location_route")
+                            tMapView?.addTMapMarkerItem(marker)
+
+                            if (isTrackingMode) {
+                                tMapView?.setCenterPoint(startLon, startLat, true)
+                            }
+                        }
+                    }
+                }
+                override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
+                override fun onProviderEnabled(p: String) {}
+                override fun onProviderDisabled(p: String) {}
+            }
+        }
+        try {
+            locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2f, locationListener!!)
+            locationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000L, 2f, locationListener!!)
+        } catch (e: SecurityException) { }
+    }
+
+    private fun searchDestinationByName(keyword: String) {
+        val tmapData = TMapData()
+        tmapData.findAllPOI(keyword, object : TMapData.OnFindAllPOIListener {
+            override fun onFindAllPOI(poiList: ArrayList<TMapPOIItem>?) {
+                runOnUiThread {
+                    if (!poiList.isNullOrEmpty()) {
+                        val poi = poiList[0]
+                        destLat = poi.poiPoint.latitude
+                        destLon = poi.poiPoint.longitude
+                        if (destName.contains("설정 필요")) {
+                            destName = poi.poiName
+                            tvEnd.text = "도착: $destName"
+                        }
+                        changeMode("TAXI")
+                    }
+                }
+            }
+        })
     }
 
     override fun onDestroy() {
@@ -487,6 +464,7 @@ class RouteActivity : BaseActivity() {
             val mapContainer = findViewById<FrameLayout>(R.id.map_container)
             mapContainer?.removeAllViews()
             tMapView = null
+            autoTrackingHandler.removeCallbacks(autoTrackingRunnable)
         } catch (e: Exception) {}
     }
 

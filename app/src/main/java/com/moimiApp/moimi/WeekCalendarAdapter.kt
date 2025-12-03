@@ -13,7 +13,7 @@ import java.util.Locale
 
 class WeekCalendarAdapter(
     private val days: List<Date>,
-    private var eventDates: Set<String> // "yyyy-MM-dd" 형태의 날짜들
+    private var eventDates: Set<String> // "yyyy-MM-dd" 형태의 날짜들 (일정 있는 날)
 ) : RecyclerView.Adapter<WeekCalendarAdapter.DayViewHolder>() {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -23,7 +23,7 @@ class WeekCalendarAdapter(
     class DayViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvDayName: TextView = view.findViewById(R.id.tv_day_name)
         val tvDateNumber: TextView = view.findViewById(R.id.tv_date_number)
-        val viewMarker: View = view.findViewById(R.id.view_event_marker)
+        val viewMarker: View = view.findViewById(R.id.view_event_marker) // 🔴 마커 뷰 연결
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DayViewHolder {
@@ -39,40 +39,35 @@ class WeekCalendarAdapter(
         holder.tvDayName.text = dayNameFormat.format(date)
         holder.tvDateNumber.text = dayNumberFormat.format(date)
 
-        // 1. 기본 요일별 색상 설정 (일정이 없을 때의 기본값)
+        // 1. 요일별 기본 색상 설정
         val cal = Calendar.getInstance()
         cal.time = date
         val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
 
-        when (dayOfWeek) {
-            Calendar.SATURDAY -> {
-                holder.tvDayName.setTextColor(Color.BLUE)
-                holder.tvDateNumber.setTextColor(Color.BLUE)
-            }
-            Calendar.SUNDAY -> {
-                holder.tvDayName.setTextColor(Color.RED)
-                holder.tvDateNumber.setTextColor(Color.RED)
-            }
-            else -> {
-                holder.tvDayName.setTextColor(Color.parseColor("#888888"))
-                holder.tvDateNumber.setTextColor(Color.parseColor("#333333"))
-            }
+        val defaultTextColor = when (dayOfWeek) {
+            Calendar.SATURDAY -> Color.BLUE
+            Calendar.SUNDAY -> Color.RED
+            else -> Color.parseColor("#333333") // 평일 검정색
         }
 
-        // 2. 일정 마커 표시 로직 (수정됨)
+        holder.tvDayName.setTextColor(if(dayOfWeek == Calendar.SUNDAY) Color.RED else if(dayOfWeek == Calendar.SATURDAY) Color.BLUE else Color.parseColor("#888888"))
+
+        // 2. ⭐ [핵심] 일정 마커 표시 로직
         if (eventDates.contains(dateStr)) {
-            // 일정이 있으면: 꽉 찬 원형 배경 + 흰색 숫자
+            // 일정이 있는 날: 빨간 동그라미 배경 표시 & 날짜 글씨 흰색
             holder.viewMarker.visibility = View.VISIBLE
             holder.viewMarker.setBackgroundResource(R.drawable.bg_circle_filled_red)
             holder.tvDateNumber.setTextColor(Color.WHITE)
         } else {
-            // 일정이 없으면: 마커 숨김 (글자색은 위에서 설정한 요일별 색상 유지)
+            // 일정이 없는 날: 마커 숨김 & 원래 색상 복구
             holder.viewMarker.visibility = View.GONE
+            holder.tvDateNumber.setTextColor(defaultTextColor)
         }
     }
 
     override fun getItemCount() = days.size
 
+    // 외부에서 일정 데이터 갱신 시 호출
     fun updateEvents(newEvents: Set<String>) {
         eventDates = newEvents
         notifyDataSetChanged()

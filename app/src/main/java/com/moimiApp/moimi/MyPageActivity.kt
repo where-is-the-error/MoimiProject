@@ -8,7 +8,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import com.bumptech.glide.Glide
-import com.moimiApp.moimi.databinding.ActivityMyPageBinding // 자동 생성된 바인딩 클래스
+import com.moimiApp.moimi.databinding.ActivityMyPageBinding
 import okhttp3.MediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -23,31 +23,23 @@ class MyPageActivity : BaseActivity() {
     private lateinit var binding: ActivityMyPageBinding
     private var selectedImageUri: Uri? = null
 
-    // 갤러리 런처
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             result.data?.data?.let { uri ->
                 selectedImageUri = uri
-                // 선택한 이미지 미리보기 (Glide + Binding)
-                Glide.with(this)
-                    .load(uri)
-                    .circleCrop()
-                    .into(binding.ivMyProfile)
+                Glide.with(this).load(uri).circleCrop().into(binding.ivMyProfile)
             }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 1. 뷰 바인딩 설정
         binding = ActivityMyPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 2. 공통 기능 설정 (툴바, 드로워)
         setupToolbar("내 정보 수정")
         setupDrawer()
 
-        // 3. 기존 정보 표시
         val myName = prefsManager.getUserName() ?: ""
         val myId = prefsManager.getUserId() ?: ""
         val myProfileUrl = prefsManager.getUserProfileImg()
@@ -56,19 +48,11 @@ class MyPageActivity : BaseActivity() {
         binding.tvMyEmail.text = myId
 
         if (!myProfileUrl.isNullOrEmpty()) {
-            Glide.with(this)
-                .load(myProfileUrl)
-                .circleCrop()
-                .placeholder(R.drawable.profile)
-                .into(binding.ivMyProfile)
+            Glide.with(this).load(myProfileUrl).circleCrop().placeholder(R.drawable.profile).into(binding.ivMyProfile)
         } else {
-            Glide.with(this)
-                .load(R.drawable.profile)
-                .circleCrop()
-                .into(binding.ivMyProfile)
+            Glide.with(this).load(R.drawable.profile).circleCrop().into(binding.ivMyProfile)
         }
 
-        // 4. 이벤트 리스너 (Binding 사용)
         binding.ivMyProfile.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             intent.type = "image/*"
@@ -81,9 +65,7 @@ class MyPageActivity : BaseActivity() {
                 Toast.makeText(this, "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-
             updateName(newName)
-
             if (selectedImageUri != null) {
                 uploadImage(selectedImageUri!!)
             }
@@ -95,52 +77,52 @@ class MyPageActivity : BaseActivity() {
         val userId = prefsManager.getUserId() ?: return
         val body = mapOf("name" to newName)
 
-        RetrofitClient.userInstance.updateProfile(token, userId, body)
-            .enqueue(object : Callback<ScheduleResponse> {
-                override fun onResponse(call: Call<ScheduleResponse>, response: Response<ScheduleResponse>) {
-                    if (response.isSuccessful) {
-                        prefsManager.saveUserName(newName)
-                        Toast.makeText(this@MyPageActivity, "이름이 수정되었습니다.", Toast.LENGTH_SHORT).show()
-                    }
+        RetrofitClient.userInstance.updateProfile(token, userId, body).enqueue(object : Callback<ScheduleResponse> {
+            override fun onResponse(call: Call<ScheduleResponse>, response: Response<ScheduleResponse>) {
+                if (response.isSuccessful) {
+                    prefsManager.saveUserName(newName)
+                    setupDrawer()
+                    Toast.makeText(this@MyPageActivity, "이름이 수정되었습니다.", Toast.LENGTH_SHORT).show()
                 }
-                override fun onFailure(call: Call<ScheduleResponse>, t: Throwable) {
-                    Toast.makeText(this@MyPageActivity, "이름 수정 실패", Toast.LENGTH_SHORT).show()
-                }
-            })
+            }
+            override fun onFailure(call: Call<ScheduleResponse>, t: Throwable) {
+                Toast.makeText(this@MyPageActivity, "이름 수정 실패", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun uploadImage(uri: Uri) {
         val token = getAuthToken()
         val userId = prefsManager.getUserId() ?: return
-
         val file = uriToFile(uri)
         if (file == null) {
             Toast.makeText(this, "이미지 변환 실패", Toast.LENGTH_SHORT).show()
             return
         }
 
+        // ✅ [수정] Companion 오류 해결: RequestBody.create 사용
         val mediaType = MediaType.parse("image/*")
         val requestFile = RequestBody.create(mediaType, file)
         val body = MultipartBody.Part.createFormData("profileImage", file.name, requestFile)
 
-        RetrofitClient.userInstance.uploadProfileImage(token, userId, body)
-            .enqueue(object : Callback<UploadProfileResponse> {
-                override fun onResponse(call: Call<UploadProfileResponse>, response: Response<UploadProfileResponse>) {
-                    if (response.isSuccessful && response.body()?.success == true) {
-                        val newUrl = response.body()?.profileImgUrl
-                        if (newUrl != null) {
-                            prefsManager.saveUserProfileImg(newUrl)
-                            Toast.makeText(this@MyPageActivity, "프로필 사진 업데이트 완료!", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Toast.makeText(this@MyPageActivity, "사진 업로드 실패", Toast.LENGTH_SHORT).show()
+        RetrofitClient.userInstance.uploadProfileImage(token, userId, body).enqueue(object : Callback<UploadProfileResponse> {
+            override fun onResponse(call: Call<UploadProfileResponse>, response: Response<UploadProfileResponse>) {
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val newUrl = response.body()?.profileImgUrl
+                    if (newUrl != null) {
+                        prefsManager.saveUserProfileImg(newUrl)
+                        setupDrawer()
+                        Toast.makeText(this@MyPageActivity, "프로필 사진 업데이트 완료!", Toast.LENGTH_SHORT).show()
                     }
+                } else {
+                    Toast.makeText(this@MyPageActivity, "사진 업로드 실패", Toast.LENGTH_SHORT).show()
                 }
-                override fun onFailure(call: Call<UploadProfileResponse>, t: Throwable) {
-                    Log.e("MyPage", "Upload Error", t)
-                    Toast.makeText(this@MyPageActivity, "서버 통신 오류", Toast.LENGTH_SHORT).show()
-                }
-            })
+            }
+            override fun onFailure(call: Call<UploadProfileResponse>, t: Throwable) {
+                Log.e("MyPage", "Upload Error", t)
+                Toast.makeText(this@MyPageActivity, "서버 통신 오류", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun uriToFile(uri: Uri): File? {

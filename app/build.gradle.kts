@@ -5,6 +5,7 @@ plugins {
 }
 
 android {
+    
     namespace = "com.moimiApp.moimi"
     compileSdk = 34
 

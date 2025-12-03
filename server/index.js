@@ -28,23 +28,44 @@ const io = new Server(server, {
     }
 });
 
-// 라우터 파일에서 io를 쓸 수 있게 전역 객체로 등록 (req.app.get('io')로 사용 가능)
+// 라우터 파일에서 io를 쓸 수 있게 전역 객체로 등록
 app.set('io', io);
 
 // Socket.IO 이벤트 리스너
 io.on('connection', (socket) => {
     console.log('🟢 새로운 소켓 연결됨:', socket.id);
 
-    // 채팅방 입장
-    socket.on('joinRoom', (roomId) => {
-        socket.join(roomId);
-        console.log(`👤 소켓 ${socket.id} -> 방 ${roomId} 입장`);
+    // ✅ [수정됨] 채팅방 입장 로직
+    socket.on('joinRoom', (data) => {
+        // 클라이언트가 { roomId: "...", userId: "..." } 형태의 객체를 보낼 경우 처리
+        const roomId = (typeof data === 'object') ? data.roomId : data;
+        const userId = (typeof data === 'object') ? data.userId : 'Unknown';
+
+        if (roomId) {
+            socket.join(roomId);
+            console.log(`👤 소켓 ${socket.id} -> 방 ${roomId} 입장 (User: ${userId})`);
+        } else {
+            console.log(`⚠️ 소켓 ${socket.id} -> 방 입장 실패 (roomId 없음):`, data);
+        }
     });
 
-    // 채팅방 퇴장
-    socket.on('leaveRoom', (roomId) => {
-        socket.leave(roomId);
-        console.log(`👋 소켓 ${socket.id} -> 방 ${roomId} 퇴장`);
+    // ✅ [수정됨] 채팅방 퇴장 로직
+    socket.on('leaveRoom', (data) => {
+        const roomId = (typeof data === 'object') ? data.roomId : data;
+        
+        if (roomId) {
+            socket.leave(roomId);
+            console.log(`👋 소켓 ${socket.id} -> 방 ${roomId} 퇴장`);
+        }
+    });
+
+    // 메시지 전송 이벤트 (서버를 거쳐갈 경우)
+    socket.on('chatMessage', (data) => {
+        // data에 roomId가 있어야 함
+        if (data.roomId) {
+            // 나를 제외한 방 안의 사람들에게 전송
+            socket.to(data.roomId).emit('chatMessage', data);
+        }
     });
 
     socket.on('disconnect', () => {
@@ -52,7 +73,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// 6. 라우터 등록 (모든 API 연결)
+// 6. 라우터 등록
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/users', require('./routes/user.routes'));
 app.use('/api/schedules', require('./routes/schedule.routes'));
@@ -62,7 +83,6 @@ app.use('/api/notifications', require('./routes/notification.routes'));
 app.use('/api/invite', require('./routes/invite.routes'));
 
 // 7. 서버 시작
-// 주의: app.listen이 아니라 server.listen을 사용해야 소켓이 작동함
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 서버가 실행 중입니다: http://0.0.0.0:${PORT}`);
