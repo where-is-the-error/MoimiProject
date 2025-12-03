@@ -3,20 +3,20 @@ package com.moimiApp.moimi
 import android.os.Bundle
 import android.view.View
 import android.widget.EditText
-import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.widget.AppCompatButton
 import com.google.android.material.tabs.TabLayout
 
-class FindAccountActivity : BaseActivity() { // BaseActivity 상속
+class FindAccountActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_find_account)
 
-        // 1. 뷰 연결 (XML ID와 정확히 일치)
-        val btnBack = findViewById<ImageButton>(R.id.btn_back)
+        // 1. 뷰 연결 (ImageButton -> ImageView로 변경 시 여기도 ImageView로 캐스팅)
+        val btnBack = findViewById<ImageView>(R.id.btn_back)
         val tabLayout = findViewById<TabLayout>(R.id.tab_layout_find)
 
         val layoutFindId = findViewById<LinearLayout>(R.id.layout_find_id_input)
@@ -28,7 +28,7 @@ class FindAccountActivity : BaseActivity() { // BaseActivity 상속
 
         val btnSend = findViewById<AppCompatButton>(R.id.btn_send_auth)
 
-        // 2. 뒤로가기 버튼
+        // 2. 뒤로가기 버튼 기능 적용 ✅
         btnBack.setOnClickListener {
             finish()
         }
@@ -55,13 +55,11 @@ class FindAccountActivity : BaseActivity() { // BaseActivity 상속
         btnSend.setOnClickListener {
             val name = etName.text.toString()
 
-            // 공통: 이름 입력 확인
             if (name.isEmpty()) {
                 Toast.makeText(this, "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // 현재 탭 확인 (0: 아이디 찾기, 1: 비밀번호 찾기)
             if (tabLayout.selectedTabPosition == 0) {
                 // [아이디 찾기 모드]
                 val phone = etPhone.text.toString()

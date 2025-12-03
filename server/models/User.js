@@ -1,19 +1,17 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    phone: { type: String, default: "" },
-    profile_img: { type: String, default: null },
-    trust_score: { type: Number, default: 0 },
-    fcm_token: { type: String, default: null },
+    name: { type: String, required: true },
+    phone: { type: String },
+    profile_img: { type: String }, // ✅ [필수] 이 필드가 있어야 사진 URL이 저장됨
+    fcm_token: { type: String },
     location: {
-        latitude: Number,
-        longitude: Number,
-        updated_at: Date
-    },
-    created_at: { type: Date, default: Date.now }
+        latitude: { type: Number },
+        longitude: { type: Number },
+        updated_at: { type: Date }
+    }
 });
 
 module.exports = mongoose.model('User', userSchema);

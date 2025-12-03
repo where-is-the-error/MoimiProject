@@ -28,6 +28,14 @@ class SharedPreferencesManager(context: Context) {
     fun saveUserName(name: String) {
         prefs.edit().putString(KEY_USER_NAME, name).apply()
     }
+    fun saveFcmToken(token: String) {
+        prefs.edit().putString("fcm_token", token).apply()
+    }
+
+    // ✅ [추가] FCM 토큰 조회 함수 (필요시 사용)
+    fun getFcmToken(): String? {
+        return prefs.getString("fcm_token", null)
+    }
 
     // ⭐ [추가] 프로필 이미지 저장/조회
     fun saveUserProfileImg(url: String) {

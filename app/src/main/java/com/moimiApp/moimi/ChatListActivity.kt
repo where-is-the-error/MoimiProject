@@ -59,10 +59,9 @@ class ChatListActivity : BaseActivity() {
         input.inputType = InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
 
         AlertDialog.Builder(this)
-            .setTitle("새로운 대화 시작")
+            .setTitle("새로운 대화 요청")
             .setMessage("대화할 상대방의 이메일을 입력해주세요.")
             .setView(input)
-            // ⭐ [수정] 버튼 텍스트 변경: "확인" -> "요청"
             .setPositiveButton("요청") { _, _ ->
                 val email = input.text.toString().trim()
                 if (email.isNotEmpty()) {
@@ -73,7 +72,6 @@ class ChatListActivity : BaseActivity() {
             .show()
     }
 
-    // ⭐ [수정] 에러 메시지를 상세하게 파싱하여 토스트로 출력
     private fun createPrivateChat(targetEmail: String) {
         val token = getAuthToken()
         val request = CreatePrivateChatRequest(targetEmail)
@@ -83,23 +81,19 @@ class ChatListActivity : BaseActivity() {
                 override fun onResponse(call: Call<CreatePrivateChatResponse>, response: Response<CreatePrivateChatResponse>) {
                     if (response.isSuccessful && response.body()?.success == true) {
                         val body = response.body()!!
-                        Toast.makeText(this@ChatListActivity, body.message, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@ChatListActivity, "대화 요청을 보냈습니다.", Toast.LENGTH_SHORT).show()
 
-                        val intent = Intent(this@ChatListActivity, ChatRoomActivity::class.java)
-                        intent.putExtra("roomId", body.roomId)
-                        intent.putExtra("roomTitle", body.title)
-                        startActivity(intent)
+                        // ✅ 바로 입장하지 않고 목록을 갱신하여 "수락 대기중" 상태를 확인하게 함
+                        fetchChatRooms()
                     } else {
-                        // 실패 시 서버가 보낸 진짜 이유(message)를 추출
                         val errorMsg = try {
                             val errorBody = response.errorBody()?.string()
                             val json = Gson().fromJson(errorBody, JsonObject::class.java)
                             json.get("message").asString
                         } catch (e: Exception) {
-                            "생성 실패 (코드: ${response.code()})"
+                            "요청 실패 (코드: ${response.code()})"
                         }
                         Toast.makeText(this@ChatListActivity, errorMsg, Toast.LENGTH_SHORT).show()
-                        Log.e("ChatList", "채팅방 생성 실패: $errorMsg")
                     }
                 }
                 override fun onFailure(call: Call<CreatePrivateChatResponse>, t: Throwable) {

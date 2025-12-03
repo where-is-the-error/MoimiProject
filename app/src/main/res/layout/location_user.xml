@@ -1,41 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingVertical="12dp">
 
-    <ImageView
-        android:id="@+id/iv_user_marker_icon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:src="@drawable/ic_launcher_foreground"
-        app:tint="#F44336"
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_profile"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="0dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-    <TextView
-        android:id="@+id/tv_user_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        tools:text="- 1.2km 남음"
-        android:textSize="16sp"
-        android:textColor="#000000"
-        android:layout_marginStart="8dp"
-        app:layout_constraintStart_toEndOf="@id/iv_user_marker_icon"
-        app:layout_constraintTop_toTopOf="@id/iv_user_marker_icon"
-        app:layout_constraintBottom_toBottomOf="@id/iv_user_marker_icon"/>
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageView
+            android:id="@+id/iv_user_profile"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/profile"
+            android:scaleType="centerCrop"
+            android:contentDescription="프로필" />
+    </androidx.cardview.widget.CardView>
 
     <TextView
         android:id="@+id/tv_user_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        tools:text="짱구"
+        android:text="사용자 이름"
+        android:textColor="#333333"
         android:textSize="14sp"
-        android:textColor="#000000"
-        android:layout_marginTop="4dp"
-        app:layout_constraintStart_toStartOf="@id/iv_user_marker_icon"
-        app:layout_constraintTop_toBottomOf="@id/iv_user_marker_icon"/>
+        android:layout_marginStart="12dp"
+        app:layout_constraintStart_toEndOf="@id/card_profile"
+        app:layout_constraintTop_toTopOf="@id/card_profile"
+        app:layout_constraintBottom_toBottomOf="@id/card_profile"/>
+
+    <View
+        android:id="@+id/view_status_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:background="@drawable/bg_circle_filled_red"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

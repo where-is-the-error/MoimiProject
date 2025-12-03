@@ -3,10 +3,15 @@ package com.moimiApp.moimi
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 
-class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class ChatAdapter(
+    private val messages: List<ChatMessage>,
+    private val myUserId: String
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
         private const val TYPE_ME = 1
@@ -28,62 +33,52 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val msg = messages[position]
-
-        // 날짜 구분선 표시 여부 결정
-        var showDate = false
-        if (position == 0) {
-            showDate = true
-        } else {
-            val prevMsg = messages[position - 1]
-            if (msg.rawDate != prevMsg.rawDate) {
-                showDate = true
-            }
-        }
-
+        val message = messages[position]
         if (holder is MeViewHolder) {
-            holder.bind(msg, showDate)
+            holder.bind(message)
         } else if (holder is OtherViewHolder) {
-            holder.bind(msg, showDate)
+            holder.bind(message)
         }
     }
 
     override fun getItemCount() = messages.size
 
-    class MeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val tvContent: TextView = itemView.findViewById(R.id.tv_bubble_me_content)
-        private val tvTime: TextView = itemView.findViewById(R.id.tv_bubble_me_time)
-        private val tvDate: TextView = itemView.findViewById(R.id.tv_chat_date_header)
+    // 내 메시지 뷰홀더
+    inner class MeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val tvMessage: TextView = itemView.findViewById(R.id.tv_chat_message)
+        val tvTime: TextView = itemView.findViewById(R.id.tv_chat_time)
 
-        fun bind(msg: ChatMessage, showDate: Boolean) {
-            tvContent.text = msg.content
+        fun bind(msg: ChatMessage) {
+            tvMessage.text = msg.content
             tvTime.text = msg.time
-
-            if (showDate) {
-                tvDate.visibility = View.VISIBLE
-                tvDate.text = msg.rawDate
-            } else {
-                tvDate.visibility = View.GONE
-            }
         }
     }
 
-    class OtherViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val tvName: TextView = itemView.findViewById(R.id.tv_bubble_other_name)
-        private val tvContent: TextView = itemView.findViewById(R.id.tv_bubble_other_content)
-        private val tvTime: TextView = itemView.findViewById(R.id.tv_bubble_other_time)
-        private val tvDate: TextView = itemView.findViewById(R.id.tv_chat_date_header)
+    // 상대방 메시지 뷰홀더
+    inner class OtherViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val ivProfile: ImageView = itemView.findViewById(R.id.iv_chat_profile) // ✅ 프로필 이미지
+        val tvName: TextView = itemView.findViewById(R.id.tv_chat_name)
+        val tvMessage: TextView = itemView.findViewById(R.id.tv_chat_message)
+        val tvTime: TextView = itemView.findViewById(R.id.tv_chat_time)
 
-        fun bind(msg: ChatMessage, showDate: Boolean) {
+        fun bind(msg: ChatMessage) {
             tvName.text = msg.senderName
-            tvContent.text = msg.content
+            tvMessage.text = msg.content
             tvTime.text = msg.time
 
-            if (showDate) {
-                tvDate.visibility = View.VISIBLE
-                tvDate.text = msg.rawDate
+            // ✅ Glide로 프로필 이미지 로드
+            if (!msg.senderProfileImg.isNullOrEmpty()) {
+                Glide.with(itemView.context)
+                    .load(msg.senderProfileImg)
+                    .circleCrop()
+                    .placeholder(R.drawable.profile)
+                    .error(R.drawable.profile)
+                    .into(ivProfile)
             } else {
-                tvDate.visibility = View.GONE
+                Glide.with(itemView.context)
+                    .load(R.drawable.profile)
+                    .circleCrop()
+                    .into(ivProfile)
             }
         }
     }

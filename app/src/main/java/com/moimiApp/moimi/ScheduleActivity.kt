@@ -2,6 +2,8 @@ package com.moimiApp.moimi
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
+import android.util.Log
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -12,6 +14,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -41,6 +45,7 @@ class ScheduleActivity : BaseActivity() {
         val fabAdd = findViewById<FloatingActionButton>(R.id.fab_add_schedule)
         swipeRefresh = findViewById(R.id.swipe_refresh_layout)
 
+        // ✅ [+] 버튼 클릭 시 다이얼로그 띄우기
         fabAdd.setOnClickListener { showAddOrJoinDialog() }
 
         rvSchedule.layoutManager = LinearLayoutManager(this)
@@ -76,6 +81,77 @@ class ScheduleActivity : BaseActivity() {
         swipeRefresh.setOnRefreshListener { refreshData() }
     }
 
+    // ✅ [기능 1] 생성 vs 참여 선택 다이얼로그
+    private fun showAddOrJoinDialog() {
+        val options = arrayOf("새 일정 만들기", "초대 코드로 참여하기")
+        AlertDialog.Builder(this)
+            .setTitle("일정 추가")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> { // 일정 만들기
+                        val intent = Intent(this, AddScheduleActivity::class.java)
+                        resultLauncher.launch(intent)
+                    }
+                    1 -> { // 코드로 참여
+                        showJoinByCodeDialog()
+                    }
+                }
+            }
+            .show()
+    }
+
+    // ✅ [기능 2] 코드 입력 다이얼로그
+    private fun showJoinByCodeDialog() {
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_NUMBER
+        input.hint = "6자리 숫자 코드 입력"
+        input.gravity = android.view.Gravity.CENTER
+        input.setPadding(50, 50, 50, 50)
+
+        AlertDialog.Builder(this)
+            .setTitle("초대 코드 입력")
+            .setView(input)
+            .setPositiveButton("참여") { _, _ ->
+                val code = input.text.toString().trim()
+                if (code.length == 6) {
+                    joinScheduleByCode(code)
+                } else {
+                    Toast.makeText(this, "코드를 올바르게 입력해주세요.", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    // ✅ [기능 3] API 호출로 참여하기
+    private fun joinScheduleByCode(code: String) {
+        val token = getAuthToken()
+        val request = JoinByCodeRequest(code)
+
+        RetrofitClient.scheduleInstance.joinScheduleByCode(token, request)
+            .enqueue(object : Callback<JoinScheduleResponse> {
+                override fun onResponse(call: Call<JoinScheduleResponse>, response: Response<JoinScheduleResponse>) {
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val msg = response.body()?.message ?: "일정에 참여했습니다."
+                        Toast.makeText(this@ScheduleActivity, msg, Toast.LENGTH_SHORT).show()
+                        refreshData()
+                    } else {
+                        val errorMsg = try {
+                            val errorBody = response.errorBody()?.string()
+                            val json = Gson().fromJson(errorBody, JsonObject::class.java)
+                            json.get("message").asString
+                        } catch (e: Exception) {
+                            "참여 실패 (코드를 확인하세요)"
+                        }
+                        Toast.makeText(this@ScheduleActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<JoinScheduleResponse>, t: Throwable) {
+                    Toast.makeText(this@ScheduleActivity, "서버 통신 오류", Toast.LENGTH_SHORT).show()
+                }
+            })
+    }
+
     private fun showManageDialog(item: ScheduleItem) {
         val options = arrayOf("일정 수정", "멤버 관리", "일정 삭제")
         AlertDialog.Builder(this)
@@ -91,7 +167,6 @@ class ScheduleActivity : BaseActivity() {
     }
 
     private fun showEditDialog(item: ScheduleItem) {
-        // 간단한 입력 다이얼로그 예시 (제목, 장소만 수정)
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(50, 40, 50, 10)
@@ -116,7 +191,6 @@ class ScheduleActivity : BaseActivity() {
 
     private fun updateSchedule(id: String, title: String, location: String) {
         val token = getAuthToken()
-        // ⭐ [수정] DataModels.kt에 UpdateScheduleRequest가 있어야 함
         val req = UpdateScheduleRequest(null, null, title, location)
 
         RetrofitClient.scheduleInstance.updateSchedule(token, id, req).enqueue(object : Callback<ScheduleResponse> {
@@ -131,13 +205,10 @@ class ScheduleActivity : BaseActivity() {
     }
 
     private fun showMemberManageDialog(item: ScheduleItem) {
-        // ⭐ [수정] members가 null일 수 있으므로 안전하게 처리
         if (item.members.isEmpty()) {
             Toast.makeText(this, "참여자가 없습니다.", Toast.LENGTH_SHORT).show()
             return
         }
-
-        // ⭐ [수정] 타입 추론 오류 해결 (CharSequence 배열로 변환)
         val memberNames = item.members.map { it.name }.toTypedArray<CharSequence>()
 
         AlertDialog.Builder(this)
@@ -192,11 +263,6 @@ class ScheduleActivity : BaseActivity() {
 
     private fun refreshData() {
         fetchSchedules(currentLoadedDate)
-    }
-
-    private fun showAddOrJoinDialog() {
-        val intent = Intent(this, AddScheduleActivity::class.java)
-        resultLauncher.launch(intent)
     }
 
     private fun fetchSchedules(date: String) {

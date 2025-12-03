@@ -44,6 +44,7 @@
                     android:pathPrefix="/invite" />
             </intent-filter>
         </activity>
+        <receiver android:name=".ScheduleAlarmReceiver" />
 
         <activity android:name=".LoginActivity" />
         <activity android:name=".NotificationActivity" />
@@ -52,6 +53,8 @@
         <activity android:name=".ChatListActivity" />
         <activity android:name=".ChatRoomActivity" android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".RouteActivity" />
+
+
         <activity android:name=".RouteDetailActivity" />
         <activity android:name=".RestaurantActivity" />
         <activity android:name=".LocationShareActivity" />
@@ -61,7 +64,13 @@
         <activity android:name=".MeetingListActivity" />
         <activity android:name=".SearchLocationActivity" />
         <activity android:name=".ScheduleDetailActivity" />
-
+        <service
+            android:name=".MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
         <service
             android:name=".LocationService"
             android:foregroundServiceType="location"

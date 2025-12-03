@@ -1,89 +1,79 @@
-import java.util.Properties
-
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-}
-
-// 1. local.properties 파일 읽기 로직 추가
-val localProperties = Properties()
-val localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localProperties.load(localPropertiesFile.inputStream())
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 android {
-
     namespace = "com.moimiApp.moimi"
-    compileSdk = 36
-
-    buildFeatures {
-        viewBinding = true
-    }
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.moimiApp.moimi"
-        minSdk = 26
-        targetSdk = 36
+        minSdk = 26 // 오레오 이상 권장
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // 2. BuildConfig 변수 생성 (String 타입, 이름: OPENWEATHER_API_KEY)
-        buildConfigField("String", "OPENWEATHER_API_KEY", "\"${localProperties["OPENWEATHER_API_KEY"]}\"")
     }
-
-    buildFeatures {
-        // 3. BuildConfig 기능 활성화
-        buildConfig = true
-        viewBinding = true
-    }
-
 
     buildTypes {
-        getByName("debug") {
-            isMinifyEnabled = false // 디버그 모드에서는 코드 삭제 금지!
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
-
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "1.8"
+    }
+    // 뷰 바인딩 사용 설정
+    buildFeatures {
+        viewBinding = true
+        dataBinding = true
     }
 }
 
 dependencies {
-    implementation ("com.github.bumptech.glide:glide:4.12.0")
-    implementation(files("libs/vsm-tmap-sdk-v2-android-1.7.45.aar"))
-    implementation(files("libs/tmap-sdk-3.0.aar"))
-    //implementation("com.google.android.gms:play-services-maps:18.2.0")
-    // 위치 및 통신 라이브러리
+    implementation(files("libs/tmap.aar"))
+    implementation(files("libs/vsm.aar"))
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0") // 새로고침 레이아웃
+    implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
+    // 2. 로컬 브로드캐스트 (MainActivity 오류 해결용)
+
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+
+    // ✅ Firebase Messaging (버전 번호 없이!)
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Retrofit (네트워크)
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    // 안드로이드 기본 라이브러리
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.constraintlayout)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    // Socket.io 클라이언트 (안정적인 버전)
-    implementation("io.socket:socket.io-client:2.1.0") {
-        exclude(group = "org.json", module = "json")
-    }
-    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Glide (이미지 로딩)
     implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    // TMap SDK (libs 폴더에 jar가 있다면 implementation fileTree 사용)
+    // implementation(files("libs/tmap-sdk-1.0
+
+    // Socket.io
+    implementation("io.socket:socket.io-client:2.1.0")
+
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }

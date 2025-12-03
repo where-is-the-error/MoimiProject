@@ -27,7 +27,7 @@ open class BaseActivity : AppCompatActivity() {
      */
     protected fun setupToolbar(title: String, showBack: Boolean = true) {
         val tvTitle = findViewById<TextView>(R.id.tv_common_title)
-        val btnBack = findViewById<ImageView>(R.id.btn_common_back)
+        val btnBack = findViewById<ImageView>(R.id.btn_back)
 
         // 제목 설정
         tvTitle?.text = title

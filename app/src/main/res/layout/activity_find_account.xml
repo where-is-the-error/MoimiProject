@@ -14,7 +14,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginStart="8dp"
         android:background="?attr/selectableItemBackground"
-        android:src="@drawable/abc_ic_ab_back_material"
+        android:src="@drawable/ic_back_arrow"
         app:tint="#000000"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

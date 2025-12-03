@@ -9,7 +9,7 @@
     android:elevation="0dp">
 
     <ImageView
-        android:id="@+id/btn_common_back"
+        android:id="@+id/btn_back"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:src="@drawable/vector"

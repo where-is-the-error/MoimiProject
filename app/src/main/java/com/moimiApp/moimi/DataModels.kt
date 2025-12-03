@@ -57,7 +57,8 @@ data class Properties(
 data class ChatLog(
     @SerializedName("content") val content: String,
     @SerializedName("timestamp") val timestamp: String,
-    @SerializedName("senderName") val senderName: String
+    @SerializedName("senderName") val senderName: String,
+    @SerializedName("senderProfileImg") val senderProfileImg: String? // ✅ 추가
 )
 
 data class ChatMessage(
@@ -65,7 +66,8 @@ data class ChatMessage(
     val time: String,
     val rawDate: String,
     val isMe: Boolean,
-    val senderName: String = ""
+    val senderName: String = "",
+    val senderProfileImg: String? = null // ✅ 추가
 )
 
 data class ChatRoom(val title: String, val lastMessage: String)
@@ -77,9 +79,11 @@ data class CreatePrivateChatResponse(val success: Boolean, val message: String, 
 data class ChatRoomItem(
     @SerializedName("id") val id: String,
     @SerializedName("title") val title: String,
+    @SerializedName("profileImg") val profileImg: String?, // ✅ [추가] 프로필 이미지 URL
     @SerializedName("lastMessage") val lastMessage: String,
     @SerializedName("meetingInfo") val meetingInfo: String?,
-    @SerializedName("hasUnread") val hasUnread: Boolean = false
+    @SerializedName("hasUnread") val hasUnread: Boolean = false,
+    @SerializedName("lastMessageTime") val lastMessageTime: String? = null
 )
 data class ChatRoomListResponse(val success: Boolean, val rooms: List<ChatRoomItem>)
 data class InviteByEmailRequest(val email: String)
@@ -116,6 +120,8 @@ data class ScheduleItem(
     val isLeader: Boolean = false,
     val type: String = "MEETING"
 )
+
+
 data class ScheduleResponse(val success: Boolean, val message: String? = null, val schedules: List<ScheduleItem>? = null, val scheduleId: String? = null, val inviteCode: String? = null)
 data class SingleScheduleResponse(val success: Boolean, val schedule: ScheduleItem?)
 data class JoinScheduleResponse(val success: Boolean, val message: String, val scheduleId: String? = null)
@@ -141,8 +147,11 @@ data class NotificationItem(
     val message: String,
     val type: String = "NORMAL",
     val metadata: Map<String, String>? = null,
+    val is_read: Boolean = false, // ✅ [추가] 읽음 상태
     val created_at: String? = null
 )
+
+data class CommonResponse(val success: Boolean, val message: String?) // 공통 응답용
 
 // --- 9. 날씨 관련 ---
 data class OpenWeatherResponse(

@@ -5,6 +5,7 @@ import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
@@ -54,6 +55,12 @@ interface ApiService {
 // 2. [채팅] 채팅 API
 // ==========================================
 interface ChatApiService {
+    @PUT("api/chats/read/{roomId}")
+    fun markAsRead(
+        @Header("Authorization") token: String,
+        @Path("roomId") roomId: String
+    ): Call<CommonResponse>
+
     @GET("api/chats/{roomId}")
     fun getChatHistory(
         @Header("Authorization") token: String,
@@ -120,9 +127,19 @@ interface ScheduleApiService {
 // ==========================================
 interface NotificationApiService {
     @GET("api/notifications")
-    fun getNotifications(
-        @Header("Authorization") token: String
-    ): Call<NotificationResponse>
+    fun getNotifications(@Header("Authorization") token: String): Call<NotificationResponse>
+
+    // ✅ [추가] 읽음 처리
+    @PUT("api/notifications/{id}/read")
+    fun markAsRead(@Header("Authorization") token: String, @Path("id") id: String): Call<CommonResponse>
+
+    // ✅ [추가] 개별 삭제
+    @DELETE("api/notifications/{id}")
+    fun deleteNotification(@Header("Authorization") token: String, @Path("id") id: String): Call<CommonResponse>
+
+    // ✅ [추가] 읽은 알림 전체 삭제
+    @DELETE("api/notifications/read/all")
+    fun deleteAllRead(@Header("Authorization") token: String): Call<CommonResponse>
 }
 
 // ==========================================

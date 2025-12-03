@@ -1,7 +1,10 @@
 package com.moimiApp.moimi
 
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -11,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -22,6 +26,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -38,6 +43,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.Random
+
 
 class MainActivity : BaseActivity() {
 
@@ -60,8 +66,8 @@ class MainActivity : BaseActivity() {
 
     private lateinit var tvTransportTime: TextView
     private lateinit var tvTransportInfo: TextView
-    private lateinit var tvClickGuide: TextView // ⭐ 추가됨
-    private lateinit var layoutTransport: LinearLayout // ⭐ 추가됨
+    private lateinit var tvClickGuide: TextView
+    private lateinit var layoutTransport: LinearLayout
 
     private lateinit var tvWeatherTemp: TextView
     private lateinit var tvWeatherDesc: TextView
@@ -82,7 +88,16 @@ class MainActivity : BaseActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var isLoadingFinished = false
     private var isWeatherFetched = false
-
+    private val notificationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            // 빨간 점 즉시 표시
+            if (::notiBadge.isInitialized) {
+                notiBadge.visibility = View.VISIBLE
+            }
+            // (선택) 알림 목록 데이터를 새로고침하고 싶다면:
+            // fetchDashboardData()
+        }
+    }
     private val tips = listOf("로딩 중...", "잠시만 기다려주세요.")
 
     // 권한 요청 코드
@@ -96,6 +111,7 @@ class MainActivity : BaseActivity() {
                 val destLat = result.data?.getDoubleExtra("destLat", 0.0) ?: 0.0
                 val destLon = result.data?.getDoubleExtra("destLon", 0.0) ?: 0.0
 
+                // 다시 메인으로 돌아왔을 때도 추적 시작
                 if (destLat != 0.0) {
                     startTrackingMyLocation(forceZoom = true)
                 }
@@ -104,6 +120,7 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         Log.e("MainActivity", "🔥 [1] onCreate 실행됨")
 
@@ -127,12 +144,11 @@ class MainActivity : BaseActivity() {
             startActivity(Intent(this, NotificationActivity::class.java))
         }
 
+        // ✅ [수정] 오버레이 제거하여 지도 터치 허용
         val mapOverlay = findViewById<View>(R.id.view_map_overlay)
-        mapOverlay.setOnClickListener {
-            moveToRouteActivity()
-        }
+        mapOverlay.visibility = View.GONE
 
-        // ⭐ [수정] 카드 전체 영역 클릭 시 길찾기로 이동
+        // 카드 전체 영역 클릭 시 길찾기로 이동 (지도 외 영역 클릭 시)
         layoutTransport.setOnClickListener { moveToRouteActivity() }
 
         val mapContainer = findViewById<FrameLayout>(R.id.map_container)
@@ -166,16 +182,15 @@ class MainActivity : BaseActivity() {
         routeLauncher.launch(intent)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun initTMapActual(container: FrameLayout) {
         try {
             Log.d("MainActivity", "🗺️ TMap 초기화 시작")
 
             try {
+                // 마커 이미지 미리 로드
                 val options = BitmapFactory.Options()
-                options.inJustDecodeBounds = true
-                BitmapFactory.decodeResource(resources, R.drawable.profile, options)
-                options.inSampleSize = 2
-                options.inJustDecodeBounds = false
+                // 원본 크기 그대로 로드 (필요시 리사이징)
                 myProfileBitmap = BitmapFactory.decodeResource(resources, R.drawable.profile, options)
             } catch (e: Exception) {
                 Log.e("MainActivity", "비트맵 로딩 실패", e)
@@ -188,13 +203,28 @@ class MainActivity : BaseActivity() {
             val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             container.addView(tMapView, params)
 
+            // ✅ [추가] 지도 터치 시 부모 스크롤뷰(NestedScrollView)가 움직이지 않도록 설정
+            tMapView?.setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                        // 부모 뷰에게 터치 이벤트를 가로채지 말라고 요청
+                        v.parent.requestDisallowInterceptTouchEvent(true)
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        v.parent.requestDisallowInterceptTouchEvent(false)
+                    }
+                }
+                false // 지도 자체의 터치 이벤트는 정상 처리되도록 false 반환
+            }
+
             tMapView?.setOnMapReadyListener {
                 Log.e("MainActivity", "✅ [2] TMap 로딩 성공 (onMapReady)")
 
                 try {
-                    tMapView?.zoomLevel = 15
+                    // 초기 위치 설정 (서울 시청)
+                    tMapView?.zoomLevel = 17
                     tMapView?.setCenterPoint(126.9780, 37.5665)
-                    startTrackingMyLocation()
+                    startTrackingMyLocation(forceZoom = true)
                 } catch (e: Exception) {
                     Log.e("MainActivity", "TMap 설정 중 오류", e)
                 }
@@ -217,19 +247,18 @@ class MainActivity : BaseActivity() {
             val isNetworkEnabled = locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
 
             if (!isGpsEnabled && !isNetworkEnabled) {
-                // 위치 서비스 꺼짐 처리
+                // 위치 서비스 꺼짐 처리 (필요 시 알림)
             }
 
             if (locationListener == null) {
                 locationListener = object : LocationListener {
                     override fun onLocationChanged(location: android.location.Location) {
-                        Log.i("MainActivity", "📍 [위치 수신] Lat: ${location.latitude}, Lon: ${location.longitude}")
-
                         currentLat = location.latitude
                         currentLon = location.longitude
 
                         if (isFinishing || isDestroyed) return
 
+                        // 날씨는 최초 1회만 가져오기
                         if (!isWeatherFetched) {
                             isWeatherFetched = true
                             fetchWeatherData(location.latitude, location.longitude)
@@ -238,11 +267,14 @@ class MainActivity : BaseActivity() {
                         runOnUiThread {
                             try {
                                 if (tMapView != null) {
-                                    if (forceZoom) {
+                                    // ⭐ [수정] 내 위치로 지도 중심 이동 및 줌 레벨 설정
+                                    // 지속적으로 내 위치를 따라다니도록 설정
+                                    tMapView?.setCenterPoint(location.longitude, location.latitude)
+
+                                    // 줌 레벨이 사용자가 변경한 게 아니라면 17로 유지 (화면 꽉 차게)
+                                    // 강제 줌이 필요하거나 현재 줌이 너무 멀리 있다면 당겨줌
+                                    if (forceZoom || tMapView?.zoomLevel!! < 15) {
                                         tMapView?.zoomLevel = 17
-                                        tMapView?.setCenterPoint(location.longitude, location.latitude)
-                                    } else {
-                                        tMapView?.setCenterPoint(location.longitude, location.latitude)
                                     }
 
                                     if (myProfileBitmap != null) {
@@ -250,8 +282,9 @@ class MainActivity : BaseActivity() {
                                             id = "my_location"
                                             setTMapPoint(TMapPoint(location.latitude, location.longitude))
                                             icon = myProfileBitmap
-                                            setPosition(0.5f, 0.5f)
+                                            setPosition(0.5f, 0.5f) // 마커 중심점 설정
                                         }
+                                        // 기존 마커 제거 후 새로 추가 (깜빡임 방지 위해 ID 관리)
                                         tMapView?.removeTMapMarkerItem("my_location")
                                         tMapView?.addTMapMarkerItem(marker)
                                     }
@@ -283,6 +316,7 @@ class MainActivity : BaseActivity() {
         locationListener?.let { listener ->
             try {
                 Log.d("MainActivity", "📡 위치 업데이트 요청 중 (GPS & Network)...")
+                // 2초마다, 5미터 이상 이동 시 업데이트
                 locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000L, 5f, listener)
                 locationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 5f, listener)
             } catch (e: Exception) {
@@ -364,6 +398,21 @@ class MainActivity : BaseActivity() {
             }
         })
     }
+    override fun onResume() {
+        super.onResume()
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            notificationReceiver,
+            IntentFilter("com.moimiApp.moimi.NEW_NOTIFICATION")
+        )
+        // 화면 돌아올 때마다 데이터 갱신
+        fetchDashboardData()
+    }
+
+    // ✅ [3] 화면이 안 보일 때 리시버 해제 (메모리 누수 방지)
+    override fun onPause() {
+        super.onPause()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(notificationReceiver)
+    }
 
     private fun initViews() {
         tvNoti3 = findViewById(R.id.tv_noti_3)
@@ -371,8 +420,8 @@ class MainActivity : BaseActivity() {
 
         tvTransportTime = findViewById(R.id.tv_transport_time)
         tvTransportInfo = findViewById(R.id.tv_transport_info)
-        tvClickGuide = findViewById(R.id.tv_click_guide) // ⭐ 추가
-        layoutTransport = findViewById(R.id.layout_transport_container) // ⭐ 추가
+        tvClickGuide = findViewById(R.id.tv_click_guide)
+        layoutTransport = findViewById(R.id.layout_transport_container)
 
         tvWeatherTemp = findViewById(R.id.tv_weather_temp)
         tvWeatherDesc = findViewById(R.id.tv_weather_desc)
@@ -435,7 +484,6 @@ class MainActivity : BaseActivity() {
         weekAdapter?.updateEvents(eventSet)
     }
 
-    // ⭐ [수정] 대시보드 업데이트 (DB 데이터 + 이동시간 계산 + 약속시간 표시)
     private fun updateMainDashboard() {
         if (::notiBadge.isInitialized) {
             notiBadge.visibility = if (fetchedNotifications.isNotEmpty()) View.VISIBLE else View.GONE
@@ -443,18 +491,13 @@ class MainActivity : BaseActivity() {
 
         val next = fetchedSchedules.firstOrNull()
         if (next != null) {
-            // [DB 연동 1] 일정 제목 표시
             tvNoti3.text = next.title
-
-            // [DB 연동 2] 하단 텍스트 표시
             tvNearestSchedule.text = next.title
             tvNearestScheduleTime.text = "${next.date} ${next.time}"
 
             if (next.type == "MEETING") {
                 nextMeetingLocation = next.location
                 nextMeetingTitle = next.title
-
-                // ⭐ "몇 시까지 가야 하는지" 표시 (예: 14:00까지 도착)
                 tvTransportInfo.text = "${next.time}까지 도착"
             } else {
                 nextMeetingLocation = null
@@ -462,18 +505,14 @@ class MainActivity : BaseActivity() {
                 tvTransportInfo.text = "일정 정보"
             }
 
-            // [DB 연동 3] 내 위치가 있고 장소가 있으면 이동시간 계산
             if (currentLat != 0.0 && !next.location.isNullOrEmpty()) {
                 tvTransportTime.text = "계산 중..."
                 fetchTravelTime(next.location)
             } else if (!next.location.isNullOrEmpty()) {
-                // 위치 정보가 아직 없으면 장소명만 표시
                 tvTransportTime.text = next.location
             } else {
                 tvTransportTime.text = "--"
             }
-
-            // 안내 문구 보이기
             tvClickGuide.visibility = View.VISIBLE
 
         } else {
@@ -488,7 +527,6 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    // ⭐ [추가] TMap 이동시간 계산 함수
     private fun fetchTravelTime(destinationName: String) {
         val tMapData = TMapData()
 
@@ -515,7 +553,6 @@ class MainActivity : BaseActivity() {
                                 val timeMin = totalTimeSec / 60
 
                                 runOnUiThread {
-                                    // ⭐ "현 위치에서 얼마나 걸리는지" 표시 (예: 약 45분 소요)
                                     tvTransportTime.text = "약 ${timeMin}분 소요"
                                 }
                             }

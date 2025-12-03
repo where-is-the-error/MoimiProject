@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "512617568486",
+    "project_id": "moimiproject",
+    "storage_bucket": "moimiproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:512617568486:android:17ec1abdd36bfac2c3c327",
+        "android_client_info": {
+          "package_name": "com.moimiApp.moimi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDz24ypC48LDcFQalYUeAEHSlde-ARAQB4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

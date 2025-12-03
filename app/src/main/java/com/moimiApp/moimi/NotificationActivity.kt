@@ -1,16 +1,19 @@
 package com.moimiApp.moimi
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.moimiApp.moimi.databinding.ActivityNotificationBinding // 바인딩 클래스 임포트
+import com.moimiApp.moimi.databinding.ActivityNotificationBinding
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -23,14 +26,16 @@ class NotificationActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 1. 뷰 바인딩 설정
         binding = ActivityNotificationBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 2. 툴바 설정 (간결해짐)
-        setupToolbar("알림")
+        setupToolbar("알림 센터") // BaseActivity 기능
 
-        // 3. 리사이클러뷰 설정 (findViewById 제거)
+        // 전체 삭제 버튼 클릭 리스너
+        binding.btnDeleteAllRead.setOnClickListener {
+            showDeleteAllDialog()
+        }
+
         binding.rvNotifications.layoutManager = LinearLayoutManager(this)
         adapter = NotificationAdapter(notiList)
         binding.rvNotifications.adapter = adapter
@@ -45,23 +50,48 @@ class NotificationActivity : BaseActivity() {
                 override fun onResponse(call: Call<NotificationResponse>, response: Response<NotificationResponse>) {
                     if (response.isSuccessful && response.body()?.success == true) {
                         notiList.clear()
-                        val list = response.body()?.notifications
-                        if (!list.isNullOrEmpty()) {
-                            notiList.addAll(list)
-                            binding.tvEmptyNotification.visibility = View.GONE
-                        } else {
-                            binding.tvEmptyNotification.visibility = View.VISIBLE
+                        response.body()?.notifications?.let {
+                            notiList.addAll(it)
                         }
+                        updateEmptyView()
                         adapter.notifyDataSetChanged()
                     }
                 }
                 override fun onFailure(call: Call<NotificationResponse>, t: Throwable) {
-                    Toast.makeText(this@NotificationActivity, "알림을 불러오지 못했습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@NotificationActivity, "알림 로드 실패", Toast.LENGTH_SHORT).show()
                 }
             })
     }
 
-    // 어댑터 내부 (여기서도 ItemNotificationBinding을 쓰면 좋지만, XML 변경 없이 호환성을 위해 유지)
+    private fun updateEmptyView() {
+        binding.tvEmptyNotification.visibility = if (notiList.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun showDeleteAllDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("알림 삭제")
+            .setMessage("읽은 알림을 모두 삭제하시겠습니까?")
+            .setPositiveButton("삭제") { _, _ ->
+                deleteAllReadNotifications()
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun deleteAllReadNotifications() {
+        val token = getAuthToken()
+        RetrofitClient.notificationInstance.deleteAllRead(token).enqueue(object : Callback<CommonResponse> {
+            override fun onResponse(call: Call<CommonResponse>, response: Response<CommonResponse>) {
+                if (response.isSuccessful) {
+                    Toast.makeText(this@NotificationActivity, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                    fetchNotifications() // 목록 새로고침
+                }
+            }
+            override fun onFailure(call: Call<CommonResponse>, t: Throwable) {}
+        })
+    }
+
+    // 어댑터 클래스
     inner class NotificationAdapter(private val items: List<NotificationItem>) : RecyclerView.Adapter<NotificationAdapter.Holder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -76,7 +106,11 @@ class NotificationActivity : BaseActivity() {
         override fun getItemCount() = items.size
 
         inner class Holder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val layoutRoot: View = itemView.findViewById(R.id.layout_notification_root)
             val tvMsg: TextView = itemView.findViewById(R.id.tv_noti_message)
+            val btnMarkRead: TextView = itemView.findViewById(R.id.btn_mark_read)
+            val btnDelete: ImageView = itemView.findViewById(R.id.btn_delete_noti)
+
             val layoutActions: View = itemView.findViewById(R.id.layout_actions)
             val btnAccept: Button = itemView.findViewById(R.id.btn_accept)
             val btnDecline: Button = itemView.findViewById(R.id.btn_decline)
@@ -84,32 +118,98 @@ class NotificationActivity : BaseActivity() {
             fun bind(item: NotificationItem) {
                 tvMsg.text = item.message
 
-                if (item.type == "CHAT_REQUEST") {
-                    layoutActions.visibility = View.VISIBLE
+                // 읽음 상태 UI
+                if (item.is_read) {
+                    layoutRoot.setBackgroundColor(Color.parseColor("#F0F0F0"))
+                    tvMsg.setTextColor(Color.parseColor("#888888"))
+                    btnMarkRead.visibility = View.GONE
+                } else {
+                    layoutRoot.setBackgroundResource(R.drawable.bg_input_rounded)
+                    tvMsg.setTextColor(Color.parseColor("#000000"))
+                    btnMarkRead.visibility = View.VISIBLE
+                }
 
-                    btnAccept.setOnClickListener {
-                        val roomId = item.metadata?.get("roomId")
-                        val requesterName = item.metadata?.get("requesterName") ?: "상대방"
+                btnMarkRead.setOnClickListener { markAsRead(item) }
+                btnDelete.setOnClickListener { deleteNotification(item) }
 
-                        if (roomId != null) {
-                            val intent = Intent(this@NotificationActivity, ChatRoomActivity::class.java)
-                            intent.putExtra("roomId", roomId)
-                            intent.putExtra("roomTitle", "${requesterName}님과의 대화")
-                            startActivity(intent)
-                            finish()
-                        } else {
-                            Toast.makeText(this@NotificationActivity, "채팅방 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                // 타입별 동작
+                when (item.type) {
+                    "CHAT_REQUEST" -> {
+                        layoutActions.visibility = View.VISIBLE
+                        btnAccept.text = "채팅 수락"
+                        btnAccept.setOnClickListener {
+                            val roomId = item.metadata?.get("roomId")
+                            val requesterName = item.metadata?.get("requesterName") ?: "알 수 없음"
+                            if (roomId != null) {
+                                markAsRead(item)
+                                val intent = Intent(this@NotificationActivity, ChatRoomActivity::class.java)
+                                intent.putExtra("roomId", roomId)
+                                intent.putExtra("roomTitle", "${requesterName}님과의 대화")
+                                startActivity(intent)
+                                finish()
+                            }
                         }
                     }
-
-                    btnDecline.setOnClickListener {
-                        Toast.makeText(this@NotificationActivity, "요청을 거절했습니다.", Toast.LENGTH_SHORT).show()
-                        layoutActions.visibility = View.GONE
+                    "SCHEDULE_INVITE" -> {
+                        layoutActions.visibility = View.VISIBLE
+                        btnAccept.text = "일정 참여"
+                        btnAccept.setOnClickListener {
+                            val scheduleId = item.metadata?.get("scheduleId")
+                            if (scheduleId != null) {
+                                markAsRead(item)
+                                joinSchedule(scheduleId)
+                            }
+                        }
                     }
-                } else {
+                    else -> layoutActions.visibility = View.GONE
+                }
+
+                btnDecline.setOnClickListener {
                     layoutActions.visibility = View.GONE
+                    markAsRead(item)
                 }
             }
         }
+    }
+
+    private fun markAsRead(item: NotificationItem) {
+        val token = getAuthToken()
+        if (item._id == null) return
+        RetrofitClient.notificationInstance.markAsRead(token, item._id)
+            .enqueue(object : Callback<CommonResponse> {
+                override fun onResponse(call: Call<CommonResponse>, response: Response<CommonResponse>) {
+                    if(response.isSuccessful) fetchNotifications()
+                }
+                override fun onFailure(call: Call<CommonResponse>, t: Throwable) {}
+            })
+    }
+
+    private fun deleteNotification(item: NotificationItem) {
+        val token = getAuthToken()
+        if (item._id == null) return
+        RetrofitClient.notificationInstance.deleteNotification(token, item._id)
+            .enqueue(object : Callback<CommonResponse> {
+                override fun onResponse(call: Call<CommonResponse>, response: Response<CommonResponse>) {
+                    if(response.isSuccessful) fetchNotifications()
+                }
+                override fun onFailure(call: Call<CommonResponse>, t: Throwable) {}
+            })
+    }
+
+    private fun joinSchedule(scheduleId: String) {
+        val token = getAuthToken()
+        RetrofitClient.scheduleInstance.joinSchedule(token, scheduleId)
+            .enqueue(object : Callback<JoinScheduleResponse> {
+                override fun onResponse(call: Call<JoinScheduleResponse>, response: Response<JoinScheduleResponse>) {
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        Toast.makeText(this@NotificationActivity, "참여 완료!", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this@NotificationActivity, ScheduleActivity::class.java))
+                        finish()
+                    } else {
+                        Toast.makeText(this@NotificationActivity, "참여 실패", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<JoinScheduleResponse>, t: Throwable) {}
+            })
     }
 }

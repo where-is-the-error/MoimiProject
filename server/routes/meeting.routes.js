@@ -15,6 +15,7 @@ const validateMeetingFields = (body) => {
     return null;
 };
 
+
 // 1. 약속 생성 (POST /api/meetings)
 router.post('/', authenticateToken, async (req, res) => {
     // 💡 디버깅 로그: 서버가 받은 데이터를 터미널에 출력
@@ -53,6 +54,8 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
+
+
 // 2. 목록 조회 (GET /api/meetings) - 인증 필요
 router.get('/', authenticateToken, async (req, res) => {
     try {
@@ -63,6 +66,45 @@ router.get('/', authenticateToken, async (req, res) => {
         res.json({ success: true, meetings });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+router.post('/:meetingId/invite-email', authenticateToken, async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email) return res.status(400).json({ success: false, message: "이메일을 입력해주세요." });
+
+    try {
+        // 1. 이메일로 유저 찾기
+        const targetUser = await User.findOne({ email: email });
+        if (!targetUser) {
+            return res.status(404).json({ success: false, message: "가입되지 않은 이메일입니다." });
+        }
+
+        // 2. 모임 찾기
+        const meeting = await Meeting.findById(req.params.meetingId);
+        if (!meeting) {
+            return res.status(404).json({ success: false, message: "모임을 찾을 수 없습니다." });
+        }
+
+        // 3. 이미 참여 중인지 확인
+        const isAlreadyParticipant = meeting.participants.some(
+            p => p.user_id.toString() === targetUser._id.toString()
+        );
+
+        if (isAlreadyParticipant) {
+            return res.json({ success: false, message: "이미 참여 중인 멤버입니다." });
+        }
+
+        // 4. 참여자 목록에 추가
+        meeting.participants.push({ user_id: targetUser._id, role: 'guest', status: 'pending' });
+        await meeting.save();
+
+        res.json({ success: true, message: `${targetUser.name}님을 초대했습니다!` });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "서버 오류 발생" });
     }
 });
 
