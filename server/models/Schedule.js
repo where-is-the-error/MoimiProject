@@ -8,7 +8,11 @@ const scheduleSchema = new mongoose.Schema({
     location: { type: String, required: true },
     type: { type: String, enum: ['MEETING', 'CHECKLIST'], default: 'MEETING' },
     
-    // ⭐ [추가] 6자리 초대 코드 (랜덤 숫자) - 중복 방지 로직은 간단하게 처리
+    // ⭐ [신규] Meeting 컬렉션과 연동 (참조 ID 저장)
+    // 이 필드에 Meeting의 _id를 저장해두면, 나중에 두 데이터를 연결할 수 있습니다.
+    meeting_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Meeting' },
+
+    // 6자리 초대 코드
     inviteCode: { 
         type: String, 
         unique: true,

@@ -3,13 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingVertical="12dp">
+    android:paddingVertical="10dp"
+    android:paddingHorizontal="4dp"
+    android:background="?attr/selectableItemBackground">
 
     <androidx.cardview.widget.CardView
         android:id="@+id/card_profile"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        app:cardCornerRadius="20dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        app:cardCornerRadius="22dp"
         app:cardElevation="0dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -20,8 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:src="@drawable/profile"
-            android:scaleType="centerCrop"
-            android:contentDescription="프로필" />
+            android:scaleType="centerCrop" />
     </androidx.cardview.widget.CardView>
 
     <TextView
@@ -30,17 +31,38 @@
         android:layout_height="wrap_content"
         android:text="사용자 이름"
         android:textColor="#333333"
-        android:textSize="14sp"
+        android:textSize="15sp"
+        android:textStyle="bold"
         android:layout_marginStart="12dp"
         app:layout_constraintStart_toEndOf="@id/card_profile"
-        app:layout_constraintTop_toTopOf="@id/card_profile"
-        app:layout_constraintBottom_toBottomOf="@id/card_profile"/>
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
-    <View
-        android:id="@+id/view_status_dot"
-        android:layout_width="8dp"
-        android:layout_height="8dp"
-        android:background="@drawable/bg_circle_filled_red"
+    <TextView
+        android:id="@+id/tv_status_sharing"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="● 공유 중"
+        android:textSize="13sp"
+        android:textColor="#4CAF50"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_request_share"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="위치 요청"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#FF8989"
+        app:cornerRadius="18dp"
+        android:paddingHorizontal="12dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>

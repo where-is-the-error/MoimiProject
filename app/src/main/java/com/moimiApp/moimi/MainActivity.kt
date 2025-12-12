@@ -50,6 +50,9 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.Random
+import kotlin.math.acos
+import kotlin.math.cos
+import kotlin.math.sin
 
 class MainActivity : BaseActivity() {
 
@@ -201,6 +204,44 @@ class MainActivity : BaseActivity() {
         }, 5000)
     }
 
+    // ✅ [신규] 두 좌표 간의 거리를 계산 (Haversine 공식 간소화)
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val R = 6371.0 // 지구 반경 (km)
+        val latDistance = Math.toRadians(lat2 - lat1)
+        val lonDistance = Math.toRadians(lon2 - lon1)
+        val a = sin(latDistance / 2) * sin(latDistance / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(lonDistance / 2) * sin(lonDistance / 2)
+        val c = 2 * acos(kotlin.math.sqrt(a))
+        return R * c
+    }
+
+    // ✅ [신규] 두 TMapPoint를 포함하도록 지도를 확대/축소
+    private fun zoomToSpan(start: TMapPoint, end: TMapPoint) {
+        try {
+            val dist = calculateDistance(start.latitude, start.longitude, end.latitude, end.longitude)
+
+            val zoomLevel = when {
+                dist < 0.5 -> 17 // 500m 미만
+                dist < 1.0 -> 16 // 1km 미만
+                dist < 3.0 -> 15 // 3km 미만
+                dist < 7.0 -> 13 // 7km 미만
+                dist < 15.0 -> 11 // 15km 미만
+                else -> 9
+            }
+
+            val centerLat = (start.latitude + end.latitude) / 2
+            val centerLon = (start.longitude + end.longitude) / 2
+
+            // 경로 그리기 후 딱 한 번만 줌 레벨을 설정하고 중앙으로 이동
+            if (!isTrackingMode) {
+                tMapView?.zoomLevel = zoomLevel
+                tMapView?.setCenterPoint(centerLon, centerLat, true)
+            }
+        } catch (e: Exception) { Log.e("MainActivity", "Zoom Error", e) }
+    }
+
+
     // 🗺️ 메인 화면에 경로(Polyline) 그리기
     private fun drawPolyLineToDestination(destLat: Double, destLon: Double) {
         if (currentLat == 0.0 || currentLon == 0.0) {
@@ -224,14 +265,16 @@ class MainActivity : BaseActivity() {
                             return
                         }
 
-                        Log.e("MainActivity", "✅ 경로 데이터 수신 성공! 점 개수 : 몰랑")
+                        Log.e("MainActivity", "✅ 경로 데이터 수신 성공! 점 개수 : ${polyLine.linePointList.size}")
 
                         polyLine.lineColor = Color.BLUE
                         polyLine.lineWidth = 14f
                         runOnUiThread {
                             tMapView?.removeAllTMapPolyLine()
                             tMapView?.addTMapPolyLine(polyLine)
-                            Log.e("MainActivity", "✅ 지도에 PolyLine 추가 완료")
+                            // ✅ 경로가 그려지면 지도 시점을 조정
+                            zoomToSpan(start, end)
+                            Log.e("MainActivity", "✅ 지도에 PolyLine 추가 완료 및 시점 조정")
                         }
                     }
                 })
@@ -494,7 +537,8 @@ class MainActivity : BaseActivity() {
         RetrofitClient.notificationInstance.getNotifications(token).enqueue(object : Callback<NotificationResponse> {
             override fun onResponse(call: Call<NotificationResponse>, response: Response<NotificationResponse>) {
                 if (response.isSuccessful) {
-                    fetchedNotifications = response.body()?.notifications ?: emptyList()
+                    // [수정] 안 읽은 알림만 필터링하여 갯수를 셉니다.
+                    fetchedNotifications = response.body()?.notifications?.filter { !it.is_read } ?: emptyList()
                     updateMainDashboard()
                 }
             }
@@ -520,7 +564,9 @@ class MainActivity : BaseActivity() {
     }
 
     private fun updateMainDashboard() {
-        if (::notiBadge.isInitialized) notiBadge.visibility = if (fetchedNotifications.isNotEmpty()) View.VISIBLE else View.GONE
+        // [수정] 안 읽은 알림 갯수 반영
+        val unreadCount = fetchedNotifications.size
+        if (::notiBadge.isInitialized) notiBadge.visibility = if (unreadCount > 0) View.VISIBLE else View.GONE
 
         val next = fetchedSchedules.firstOrNull()
         if (next != null) {
@@ -565,7 +611,11 @@ class MainActivity : BaseActivity() {
             override fun onFindAllPOI(poiList: ArrayList<TMapPOIItem>?) {
                 if (!poiList.isNullOrEmpty()) {
                     val destPoi = poiList[0]
-                    val request = RouteRequest(startX = currentLon, startY = currentLat, endX = destPoi.poiPoint.longitude, endY = destPoi.poiPoint.latitude, totalValue = 2)
+                    val request = RouteRequest(
+                        startX = currentLon, startY = currentLat,
+                        endX = destPoi.poiPoint.longitude, endY = destPoi.poiPoint.latitude,
+                        totalValue = 2
+                    )
                     TmapClient.instance.getRoute(tMapApiKey, request).enqueue(object : Callback<TmapRouteResponse> {
                         override fun onResponse(call: Call<TmapRouteResponse>, response: Response<TmapRouteResponse>) {
                             val props = response.body()?.features?.firstOrNull()?.properties

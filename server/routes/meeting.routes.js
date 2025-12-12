@@ -108,7 +108,45 @@ router.post('/:meetingId/invite-email', authenticateToken, async (req, res) => {
     }
 });
 
-// 3. 상세 조회 (GET /api/meetings/:meetingId) - 인증 필요
+// ✅ [신규] 3. 특정 모임 참여자의 상태 변경 (채팅 요청 수락/거절 등)
+router.put('/:meetingId/participant-status', authenticateToken, async (req, res) => {
+    const { userId, status } = req.body; // userId는 상태를 변경할 대상 ID (보통 req.user.userId)
+
+    // 요청한 사용자가 상태를 변경할 대상과 일치하는지 확인 (보안 강화)
+    if (userId !== req.user.userId) {
+        return res.status(403).json({ success: false, message: "권한 없음: 대상자만 상태를 변경할 수 있습니다." });
+    }
+
+    if (!userId || !status || !['attended', 'absent', 'pending'].includes(status)) {
+        return res.status(400).json({ success: false, message: "잘못된 요청: userId 또는 status가 누락/유효하지 않음" });
+    }
+
+    try {
+        const meeting = await Meeting.findById(req.params.meetingId);
+        if (!meeting) {
+            return res.status(404).json({ success: false, message: "모임을 찾을 수 없습니다." });
+        }
+        
+        // 대상 참여자 정보 업데이트
+        const result = await Meeting.updateOne(
+            { _id: req.params.meetingId, 'participants.user_id': userId },
+            { $set: { 'participants.$.status': status, 'participants.$.lastReadAt': new Date() } } // 상태 변경 시 lastReadAt도 갱신
+        );
+
+        if (result.modifiedCount === 0) {
+            // 수정된 문서가 없으면 해당 유저가 참여자에 없다는 의미
+             return res.status(404).json({ success: false, message: "해당 모임에 참여자를 찾을 수 없습니다." });
+        }
+
+        res.json({ success: true, message: "참여자 상태가 업데이트되었습니다." });
+    } catch (err) {
+        console.error("참여자 상태 업데이트 오류:", err);
+        res.status(500).json({ success: false, message: "서버 오류 발생" });
+    }
+});
+
+
+// 4. 상세 조회 (GET /api/meetings/:meetingId) - 인증 필요
 router.get('/:meetingId', authenticateToken, async (req, res) => {
     try {
         const meeting = await Meeting.findById(req.params.meetingId)
@@ -124,7 +162,7 @@ router.get('/:meetingId', authenticateToken, async (req, res) => {
     }
 });
 
-// 4. 참여자 추가 (POST /api/meetings/:meetingId/participants) - 인증 필요
+// 5. 참여자 추가 (POST /api/meetings/:meetingId/participants) - 인증 필요
 router.post('/:meetingId/participants', authenticateToken, async (req, res) => {
     // 초대받는 사용자 ID를 Body에서 받습니다.
     const { userId: guestId } = req.body; 
@@ -147,7 +185,7 @@ router.post('/:meetingId/participants', authenticateToken, async (req, res) => {
     }
 });
 
-// 5. 출석 체크 & 신뢰 점수 (POST /api/meetings/:meetingId/attendance) - 인증 필요 (호스트 권한 체크 필요)
+// 6. 출석 체크 & 신뢰 점수 (POST /api/meetings/:meetingId/attendance) - 인증 필요 (호스트 권한 체크 필요)
 router.post('/:meetingId/attendance', authenticateToken, async (req, res) => {
     // 현재 로그인한 사용자(req.user.userId)는 호스트라고 가정합니다.
     const { targetUserId, status } = req.body; // 출석 체크 대상 ID와 상태 ('attended' 또는 'absent')
@@ -175,7 +213,7 @@ router.post('/:meetingId/attendance', authenticateToken, async (req, res) => {
     }
 });
 
-// 6. 참여자 위치 조회 (GET /api/meetings/:meetingId/locations) - 인증 필요
+// 7. 참여자 위치 조회 (GET /api/meetings/:meetingId/locations) - 인증 필요
 router.get('/:meetingId/locations', authenticateToken, async (req, res) => {
     try {
         const meeting = await Meeting.findById(req.params.meetingId);
@@ -195,6 +233,67 @@ router.get('/:meetingId/locations', authenticateToken, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+// 8. 위치 공유 상태 토글 (ON/OFF)
+router.put('/:meetingId/share-location', authenticateToken, async (req, res) => {
+    const { isSharing } = req.body; // true 또는 false
+    
+    try {
+        // 내 참여 정보의 isSharing 상태 업데이트
+        const updatedMeeting = await Meeting.findOneAndUpdate(
+            { _id: req.params.meetingId, 'participants.user_id': req.user.userId },
+            { $set: { 'participants.$.isSharing': isSharing } },
+            { new: true } // 업데이트된 문서 반환
+        );
+
+        if (!updatedMeeting) return res.status(404).json({ success: false, message: "모임 또는 참여자를 찾을 수 없음" });
+
+        // 소켓으로도 "상태 변경" 알림을 보내주면 베스트 (선택 사항)
+        const io = req.app.get('io');
+        if (io) {
+            io.to(req.params.meetingId).emit('sharingStatusChanged', {
+                userId: req.user.userId,
+                isSharing: isSharing
+            });
+        }
+
+        res.json({ success: true, isSharing });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "상태 변경 실패" });
+    }
+});
+
+// 9. 위치 공유 요청 (콕 찌르기 알림)
+router.post('/:meetingId/request-location', authenticateToken, async (req, res) => {
+    const { targetUserId } = req.body; // 알림 보낼 상대방 ID
+
+    try {
+        const targetUser = await User.findById(targetUserId);
+        const sender = await User.findById(req.user.userId);
+        
+        if (!targetUser || !targetUser.fcm_token) {
+            return res.status(400).json({ success: false, message: "상대방이 알림을 받을 수 없는 상태입니다." });
+        }
+
+        // FCM 알림 발송
+        await admin.messaging().send({
+            token: targetUser.fcm_token,
+            notification: {
+                title: "📍 위치 공유 요청",
+                body: `${sender.name}님이 위치 공유를 요청했어요! 버튼을 눌러 공유를 시작해보세요.`
+            },
+            data: {
+                type: "LOCATION_REQUEST",
+                meetingId: req.params.meetingId
+            }
+        });
+
+        res.json({ success: true, message: "알림을 보냈습니다." });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "알림 전송 실패" });
     }
 });
 

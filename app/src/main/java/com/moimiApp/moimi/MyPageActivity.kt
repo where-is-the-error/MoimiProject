@@ -8,6 +8,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.moimiApp.moimi.databinding.ActivityMyPageBinding
 import okhttp3.MediaType
 import okhttp3.MultipartBody
@@ -27,6 +28,7 @@ class MyPageActivity : BaseActivity() {
         if (result.resultCode == RESULT_OK) {
             result.data?.data?.let { uri ->
                 selectedImageUri = uri
+                // 선택한 이미지를 미리보기로 보여줄 때도 캐시 옵션 적용 (선택 사항)
                 Glide.with(this).load(uri).circleCrop().into(binding.ivMyProfile)
             }
         }
@@ -48,7 +50,11 @@ class MyPageActivity : BaseActivity() {
         binding.tvMyEmail.text = myId
 
         if (!myProfileUrl.isNullOrEmpty()) {
-            Glide.with(this).load(myProfileUrl).circleCrop().placeholder(R.drawable.profile).into(binding.ivMyProfile)
+            Glide.with(this)
+                .load(myProfileUrl)
+                .circleCrop()
+                .placeholder(R.drawable.profile)
+                .into(binding.ivMyProfile)
         } else {
             Glide.with(this).load(R.drawable.profile).circleCrop().into(binding.ivMyProfile)
         }
@@ -81,7 +87,7 @@ class MyPageActivity : BaseActivity() {
             override fun onResponse(call: Call<ScheduleResponse>, response: Response<ScheduleResponse>) {
                 if (response.isSuccessful) {
                     prefsManager.saveUserName(newName)
-                    setupDrawer()
+                    setupDrawer() // 드로어 메뉴의 이름도 갱신
                     Toast.makeText(this@MyPageActivity, "이름이 수정되었습니다.", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -100,7 +106,6 @@ class MyPageActivity : BaseActivity() {
             return
         }
 
-        // ✅ [수정] Companion 오류 해결: RequestBody.create 사용
         val mediaType = MediaType.parse("image/*")
         val requestFile = RequestBody.create(mediaType, file)
         val body = MultipartBody.Part.createFormData("profileImage", file.name, requestFile)
@@ -111,8 +116,19 @@ class MyPageActivity : BaseActivity() {
                     val newUrl = response.body()?.profileImgUrl
                     if (newUrl != null) {
                         prefsManager.saveUserProfileImg(newUrl)
-                        setupDrawer()
-                        Toast.makeText(this@MyPageActivity, "프로필 사진 업데이트 완료!", Toast.LENGTH_SHORT).show()
+                        setupDrawer() // 드로어 프로필 갱신
+
+                        // ★ [핵심] 캐시 무시하고 즉시 새로고침
+                        runOnUiThread {
+                            Glide.with(this@MyPageActivity)
+                                .load(newUrl)
+                                .diskCacheStrategy(DiskCacheStrategy.NONE) // 디스크 캐시 끄기
+                                .skipMemoryCache(true) // 메모리 캐시 끄기
+                                .circleCrop()
+                                .into(binding.ivMyProfile)
+
+                            Toast.makeText(this@MyPageActivity, "프로필 사진 업데이트 완료!", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 } else {
                     Toast.makeText(this@MyPageActivity, "사진 업로드 실패", Toast.LENGTH_SHORT).show()

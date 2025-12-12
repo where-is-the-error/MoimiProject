@@ -58,7 +58,7 @@ data class ChatLog(
     @SerializedName("content") val content: String,
     @SerializedName("timestamp") val timestamp: String,
     @SerializedName("senderName") val senderName: String,
-    @SerializedName("senderProfileImg") val senderProfileImg: String? // ✅ 추가
+    @SerializedName("senderProfileImg") val senderProfileImg: String?
 )
 
 data class ChatMessage(
@@ -67,7 +67,7 @@ data class ChatMessage(
     val rawDate: String,
     val isMe: Boolean,
     val senderName: String = "",
-    val senderProfileImg: String? = null // ✅ 추가
+    val senderProfileImg: String? = null
 )
 
 data class ChatRoom(val title: String, val lastMessage: String)
@@ -79,7 +79,7 @@ data class CreatePrivateChatResponse(val success: Boolean, val message: String, 
 data class ChatRoomItem(
     @SerializedName("id") val id: String,
     @SerializedName("title") val title: String,
-    @SerializedName("profileImg") val profileImg: String?, // ✅ [추가] 프로필 이미지 URL
+    @SerializedName("profileImg") val profileImg: String?,
     @SerializedName("lastMessage") val lastMessage: String,
     @SerializedName("meetingInfo") val meetingInfo: String?,
     @SerializedName("hasUnread") val hasUnread: Boolean = false,
@@ -88,6 +88,11 @@ data class ChatRoomItem(
 data class ChatRoomListResponse(val success: Boolean, val rooms: List<ChatRoomItem>)
 data class InviteByEmailRequest(val email: String)
 data class InviteResponse(val success: Boolean, val message: String)
+
+data class UpdateParticipantStatusRequest(
+    val userId: String,
+    val status: String
+)
 
 // --- 5. 검색 관련 ---
 data class TmapPoiResponse(val searchPoiInfo: SearchPoiInfo?)
@@ -118,9 +123,10 @@ data class ScheduleItem(
     val memberNames: List<String> = emptyList(),
     val members: List<MemberInfo> = emptyList(),
     val isLeader: Boolean = false,
-    val type: String = "MEETING"
+    val type: String = "MEETING",
+    val meetingId: String? = null,
+    val meetingTitle: String? = null
 )
-
 
 data class ScheduleResponse(val success: Boolean, val message: String? = null, val schedules: List<ScheduleItem>? = null, val scheduleId: String? = null, val inviteCode: String? = null)
 data class SingleScheduleResponse(val success: Boolean, val schedule: ScheduleItem?)
@@ -131,11 +137,11 @@ data class JoinByCodeRequest(val inviteCode: String)
 data class CreateMeetingRequest(val title: String, val location: String, val dateTime: String, val reservationRequired: Boolean)
 data class MeetingCreationResponse(val success: Boolean, val message: String)
 
-// ⭐ [수정] 서버의 snake_case(date_time)를 camelCase(dateTime)로 매핑
+// ⭐ [수정] _id 매핑 (필수)
 data class MeetingItem(
-    val id: String,
+    @SerializedName("_id") val id: String,
     val title: String,
-    @SerializedName("date_time") val dateTime: String, // 여기가 핵심 원인 수정!
+    @SerializedName("date_time") val dateTime: String,
     val location: String
 )
 data class MeetingListResponse(val success: Boolean, val meetings: List<MeetingItem>?)
@@ -147,11 +153,30 @@ data class NotificationItem(
     val message: String,
     val type: String = "NORMAL",
     val metadata: Map<String, String>? = null,
-    val is_read: Boolean = false, // ✅ [추가] 읽음 상태
+    val is_read: Boolean = false,
     val created_at: String? = null
 )
 
-data class CommonResponse(val success: Boolean, val message: String?) // 공통 응답용
+// ⭐ [수정] MeetingDetail에 destination 필드 추가
+data class SingleMeetingResponse(val success: Boolean, val meeting: MeetingDetail?)
+data class MeetingDetail(
+    @SerializedName("_id") val id: String, // _id 매핑
+    val title: String,
+    val destination: GeoLocation?, // 길찾기용 목적지
+    val participants: List<ParticipantInfo>
+)
+data class ParticipantInfo(
+    val user_id: UserSimpleInfo?,
+    val isSharing: Boolean
+)
+// ⭐ [수정] UserSimpleInfo에 id 매핑
+data class UserSimpleInfo(
+    @SerializedName("_id") val id: String, // _id 매핑
+    val name: String,
+    val profile_img: String?
+)
+
+data class CommonResponse(val success: Boolean, val message: String?)
 
 // --- 9. 날씨 관련 ---
 data class OpenWeatherResponse(
@@ -174,4 +199,22 @@ data class WeatherDescription(
 )
 data class WindInfo(
     @SerializedName("speed") val speed: Double
+)
+
+// ⭐ [신규] 참여자 위치 목록 조회용
+data class MeetingLocationResponse(
+    val success: Boolean,
+    val locations: List<UserLocationInfo>
+)
+
+data class UserLocationInfo(
+    @SerializedName("_id") val userId: String,
+    val name: String,
+    val location: GeoLocation?,
+    val profile_img: String?
+)
+
+data class GeoLocation(
+    val type: String,
+    val coordinates: List<Double>
 )

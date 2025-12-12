@@ -19,6 +19,35 @@ import retrofit2.http.Query
 // 1. [내 서버] Node.js API
 // ==========================================
 interface ApiService {
+    
+    @PUT("api/meetings/{meetingId}/share-location")
+    fun toggleLocationShare(
+        @Header("Authorization") token: String,
+        @Path("meetingId") meetingId: String,
+        @Body body: Map<String, Boolean> // {"isSharing": true}
+    ): Call<CommonResponse>
+
+    // [신규] 2. 위치 공유 요청 (콕 찌르기)
+    @POST("api/meetings/{meetingId}/request-location")
+    fun requestLocationShare(
+        @Header("Authorization") token: String,
+        @Path("meetingId") meetingId: String,
+        @Body body: Map<String, String> // {"targetUserId": "..."}
+    ): Call<CommonResponse>
+
+    // [신규] 3. 모임 상세 정보(참여자 상태 포함) 가져오기
+    @GET("api/meetings/{meetingId}")
+    fun getMeetingDetail(
+        @Header("Authorization") token: String,
+        @Path("meetingId") meetingId: String
+    ): Call<SingleMeetingResponse>
+
+    @GET("api/meetings/{meetingId}/locations")
+    fun getMeetingLocations(
+        @Header("Authorization") token: String,
+        @Path("meetingId") meetingId: String
+    ): Call<MeetingLocationResponse>
+
     @POST("api/auth/login")
     fun login(@Body request: LoginRequest): Call<LoginResponse>
 
@@ -49,6 +78,14 @@ interface ApiService {
         @Path("meetingId") meetingId: String,
         @Body request: InviteByEmailRequest
     ): Call<InviteResponse>
+
+    // ✅ [신규] 모임(채팅방) 참여자 상태 변경 (채팅 요청 수락용)
+    @PUT("api/meetings/{meetingId}/participant-status")
+    fun updateParticipantStatus(
+        @Header("Authorization") token: String,
+        @Path("meetingId") meetingId: String,
+        @Body request: UpdateParticipantStatusRequest
+    ): Call<CommonResponse>
 }
 
 // ==========================================

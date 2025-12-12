@@ -51,7 +51,9 @@ class NotificationActivity : BaseActivity() {
                     if (response.isSuccessful && response.body()?.success == true) {
                         notiList.clear()
                         response.body()?.notifications?.let {
-                            notiList.addAll(it)
+                            // 안 읽은 알림이 맨 위로 오도록 정렬 (서버에서 정렬하지만, 한 번 더 확인)
+                            val sortedList = it.sortedBy { item -> item.is_read }
+                            notiList.addAll(sortedList)
                         }
                         updateEmptyView()
                         adapter.notifyDataSetChanged()
@@ -89,6 +91,34 @@ class NotificationActivity : BaseActivity() {
             }
             override fun onFailure(call: Call<CommonResponse>, t: Throwable) {}
         })
+    }
+
+    // ✅ [신규] 채팅 요청 수락 API 호출
+    private fun acceptChatRequest(roomId: String, requesterName: String) {
+        val token = getAuthToken()
+        val userId = prefsManager.getUserId() ?: return
+        // 상태를 'attended'로 변경 요청
+        val request = UpdateParticipantStatusRequest(userId, "attended")
+
+        RetrofitClient.instance.updateParticipantStatus(token, roomId, request)
+            .enqueue(object : Callback<CommonResponse> {
+                override fun onResponse(call: Call<CommonResponse>, response: Response<CommonResponse>) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@NotificationActivity, "${requesterName}님과의 대화가 시작됩니다.", Toast.LENGTH_SHORT).show()
+                        // 채팅방으로 이동
+                        val intent = Intent(this@NotificationActivity, ChatRoomActivity::class.java)
+                        intent.putExtra("roomId", roomId)
+                        intent.putExtra("roomTitle", "${requesterName}님과의 대화")
+                        startActivity(intent)
+                        finish()
+                    } else {
+                        Toast.makeText(this@NotificationActivity, "채팅 요청 수락 실패", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<CommonResponse>, t: Throwable) {
+                    Toast.makeText(this@NotificationActivity, "서버 통신 오류", Toast.LENGTH_SHORT).show()
+                }
+            })
     }
 
     // 어댑터 클래스
@@ -137,22 +167,21 @@ class NotificationActivity : BaseActivity() {
                     "CHAT_REQUEST" -> {
                         layoutActions.visibility = View.VISIBLE
                         btnAccept.text = "채팅 수락"
+                        btnDecline.text = "거절/닫기"
                         btnAccept.setOnClickListener {
                             val roomId = item.metadata?.get("roomId")
                             val requesterName = item.metadata?.get("requesterName") ?: "알 수 없음"
                             if (roomId != null) {
+                                // 알림을 읽음 처리하고, 채팅 요청을 수락
                                 markAsRead(item)
-                                val intent = Intent(this@NotificationActivity, ChatRoomActivity::class.java)
-                                intent.putExtra("roomId", roomId)
-                                intent.putExtra("roomTitle", "${requesterName}님과의 대화")
-                                startActivity(intent)
-                                finish()
+                                acceptChatRequest(roomId, requesterName)
                             }
                         }
                     }
                     "SCHEDULE_INVITE" -> {
                         layoutActions.visibility = View.VISIBLE
                         btnAccept.text = "일정 참여"
+                        btnDecline.text = "거절/닫기"
                         btnAccept.setOnClickListener {
                             val scheduleId = item.metadata?.get("scheduleId")
                             if (scheduleId != null) {

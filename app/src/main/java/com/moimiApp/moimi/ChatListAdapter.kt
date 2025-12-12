@@ -54,13 +54,16 @@ class ChatListAdapter(
                     .into(ivProfile)
             }
 
-            // 메시지 처리
-            if (chatRoom.lastMessage == "대화를 시작해보세요!" || chatRoom.lastMessage.isEmpty()) {
-                tvMessage.text = "수락을 기다리는 중입니다..."
-                tvMessage.setTextColor(Color.parseColor("#FF8989"))
+            // 메시지 처리 (상태 메시지 구별)
+            // 서버에서 전달받는 상태 메시지 패턴: "수락을 기다리는 중입니다." 또는 "대화 요청을 수락해주세요!"
+            val isStatusMessage = chatRoom.lastMessage.contains("기다리는 중입니다") || chatRoom.lastMessage.contains("수락해주세요") || chatRoom.lastMessage == "대화를 시작해보세요!"
+
+            if (isStatusMessage) {
+                tvMessage.text = if (chatRoom.lastMessage.isEmpty() || chatRoom.lastMessage == "대화를 시작해보세요!") "새로운 대화를 시작해보세요!" else chatRoom.lastMessage
+                tvMessage.setTextColor(Color.parseColor("#FF8989")) // 브랜드 색상
             } else {
                 tvMessage.text = chatRoom.lastMessage
-                tvMessage.setTextColor(Color.parseColor("#888888"))
+                tvMessage.setTextColor(Color.parseColor("#888888")) // 일반 텍스트 색상
             }
 
             // 시간 표시

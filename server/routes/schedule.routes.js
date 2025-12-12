@@ -20,6 +20,55 @@ router.post('/', authenticateToken, async (req, res) => {
         res.json({ success: true, message: "저장 성공", scheduleId: newSchedule._id, inviteCode: newSchedule.inviteCode });
     } catch (err) { res.status(500).json({ success: false, message: "서버 오류" }); }
 });
+router.get('/', authenticateToken, async (req, res) => {
+    const { date } = req.query;
+    
+    // 내가 참여한 일정 검색
+    const query = { participants: req.user.userId };
+
+    if (date) {
+        query.date = date; // 특정 날짜 조회
+    } else {
+        // 날짜 파라미터가 없으면 "오늘 이후" 일정 조회
+        const now = new Date();
+        const offset = 1000 * 60 * 60 * 9; // KST
+        const todayStr = new Date(now.getTime() + offset).toISOString().split('T')[0];
+        query.date = { $gte: todayStr }; 
+    }
+
+    try {
+        // ⭐ [핵심] populate에 'meeting_id' 추가
+        const schedules = await Schedule.find(query)
+            .populate('creator_id', 'name')
+            .populate('participants', 'name')
+            .populate('meeting_id', 'title location') // meeting_id에서 title과 location만 가져옴
+            .sort({ date: 1, time: 1 });
+        
+        const formatted = schedules.map(s => ({
+            id: s._id, 
+            time: s.time, 
+            date: s.date, 
+            title: s.title, 
+            location: s.location,
+            inviteCode: s.inviteCode, 
+            leaderName: s.creator_id ? s.creator_id.name : "알 수 없음", 
+            leaderId: s.creator_id ? s.creator_id._id : "",
+            isLeader: s.creator_id ? s.creator_id._id.toString() === req.user.userId : false,
+            memberNames: s.participants.map(p => p.name),
+            members: s.participants.map(p => ({ id: p._id, name: p.name })),
+            type: s.type,
+            
+            // ⭐ [신규] 연결된 모임(채팅방) 정보 추가
+            meetingId: s.meeting_id ? s.meeting_id._id : null,
+            meetingTitle: s.meeting_id ? s.meeting_id.title : null
+        }));
+
+        res.json({ success: true, schedules: formatted });
+    } catch (err) { 
+        console.error(err);
+        res.status(500).json({ success: false, message: "오류 발생" }); 
+    }
+});
 
 // 2. 일정 목록 조회
 router.get('/', authenticateToken, async (req, res) => {

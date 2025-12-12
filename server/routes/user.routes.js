@@ -1,8 +1,7 @@
+// routes/user.routes.js
 const express = require('express');
 const router = express.Router();
-
-// ⚠️ 경로 수정됨 (../)
-const User = require('../models/User');
+const User = require('../models/User'); // ⚠️ 경로 확인 (../models/User)
 const authenticateToken = require('../middleware/auth');
 const upload = require('../config/uploadConfig');
 
@@ -38,18 +37,27 @@ router.post('/fcm-token', authenticateToken, async (req, res) => {
     res.json({ success: true });
 });
 
-// 5. 위치 업데이트
+// ⭐ 5. 위치 업데이트 (치명적 오류 수정됨)
 router.post('/locations', authenticateToken, async (req, res) => {
     const { latitude, longitude } = req.body;
     
-    await User.findByIdAndUpdate(req.user.userId, {
-        location: {
-            latitude,
-            longitude,
-            updated_at: new Date()
-        }
-    });
-    res.json({ success: true });
+    // User 모델의 GeoJSON 스키마에 맞춰서 데이터 구조 변경
+    try {
+        await User.findByIdAndUpdate(req.user.userId, {
+            $set: {
+                location: {
+                    type: 'Point',
+                    // ⚠️ MongoDB는 [경도(lng), 위도(lat)] 순서입니다!
+                    coordinates: [parseFloat(longitude), parseFloat(latitude)],
+                    updated_at: new Date()
+                }
+            }
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error("위치 업데이트 실패:", err);
+        res.status(500).json({ success: false, message: "위치 저장 실패" });
+    }
 });
 
 module.exports = router;
